@@ -45,6 +45,14 @@ namespace http {
             mHeaders[std::move(header)] = std::move(value);
         }
 
+        [[nodiscard]] const headers& getHeaders() const noexcept {
+            return mHeaders;
+        }
+
+        void setContentLength(std::uint64_t length) {
+            mContentLength = length;
+        }
+
         size_t recvBody(std::vector<std::byte> &buffer);
         void sendBodyPart(const std::vector<std::byte> &buffer);
 
@@ -63,7 +71,7 @@ namespace http {
         int mSocket = -1;
         bool mConnected = true;
         const url mUrl;
-        const std::uint64_t mContentLength;
+        std::uint64_t mContentLength;
         std::uint64_t mRemainingLength;
         headers mHeaders;
     };
