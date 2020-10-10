@@ -115,9 +115,11 @@ void object::sendHead() {
 }
 
 void object::writeHeaders(bytes &buffer) const noexcept {
-    buffer += "content-length: ";
-    buffer += std::to_string(mContentLength);
-    buffer += "\r\n";
+    if (mContentLength) {
+        buffer += "content-length: ";
+        buffer += std::to_string(mContentLength);
+        buffer += "\r\n";
+    }
 
     for (const auto& h: getHeaders()) {
         buffer += h.first;
