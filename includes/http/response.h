@@ -9,7 +9,7 @@
 #include "request.h"
 
 namespace http {
-    class response: object {
+    class response: public object {
     public:
         response(request request);
         void setStatusCode(std::uint16_t code) noexcept;

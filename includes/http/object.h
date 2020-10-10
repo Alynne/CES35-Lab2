@@ -58,6 +58,10 @@ namespace http {
 
         void sendHead();
 
+        void initialize(int socket) noexcept {
+            mSocket = socket;
+        }
+
     protected:
         object(std::uint64_t contentLength, url url, headers headers)
             : mContentLength(contentLength)
@@ -69,9 +73,6 @@ namespace http {
         virtual void writeStartLine(bytes &buffer) const noexcept {}
         void writeHeaders(bytes &buffer) const noexcept;
 
-        void initialize(int socket) noexcept {
-            mSocket = socket;
-        }
     private:
         int mSocket = -1;
         bool mConnected = true;
