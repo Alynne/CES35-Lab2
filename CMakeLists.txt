@@ -4,12 +4,13 @@ project(ces35-lab2)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(includes)
+set(INCLUDES_ROOT_FOLDER ${CMAKE_SOURCE_DIR}/includes)
 
 add_subdirectory(third-party/googletest)
 add_subdirectory(src/http)
 add_subdirectory(src/client)
 add_subdirectory(src/server)
+add_subdirectory(tests)
 
 ## Common configuration
 set_target_properties(http server client PROPERTIES
