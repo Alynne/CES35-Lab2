@@ -4,7 +4,8 @@ project(ces35-lab2)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)
 
-set(INCLUDES_ROOT_FOLDER ${CMAKE_SOURCE_DIR}/includes)
+set(INCLUDES_ROOT_FOLDER ${CMAKE_SOURCE_DIR}/includes/)
+file(GLOB HEADER_FILES "${INCLUDES_ROOT_FOLDER}/*.h" "${INCLUDES_ROOT_FOLDER}/**/*.h")
 
 add_subdirectory(third-party/googletest)
 add_subdirectory(src/http)

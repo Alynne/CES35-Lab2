@@ -1,4 +1,5 @@
 file(GLOB HTTP_SRC
+        ${HEADER_FILES}
         "*.cpp"
         "**/*.cpp")
 

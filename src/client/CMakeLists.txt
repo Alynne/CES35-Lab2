@@ -1,4 +1,6 @@
 file(GLOB CLIENT_SRC
+        ${HEADER_FILES}
+        "*.h"
         "*.cpp"
         "**/*.cpp")
 
