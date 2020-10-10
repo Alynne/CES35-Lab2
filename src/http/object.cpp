@@ -3,3 +3,90 @@
 //
 
 #include "http/object.h"
+#include "arpa/inet.h"
+#include <cerrno>
+
+using namespace http;
+
+size_t object::recvBody(std::vector<std::byte> &buffer) {
+    size_t bytesRead;
+    while (true) {
+        bytesRead = recv(mSocket, (void*)buffer.data(), buffer.size(), 0);
+
+        if (bytesRead == -1) {
+            switch (errno) {
+                case EAGAIN:
+                    throw std::runtime_error("received socket is configured to asynchronous receive");
+                case EBADF:
+                case ENOTSOCK:
+                    throw std::runtime_error("received socket is an invalid file descriptor");
+                case ETIMEDOUT:
+                case ECONNRESET:
+                    mConnected = false;
+                    break;
+                case EFAULT:
+                    std::exit(11);
+                case EINVAL:
+                case EINTR:
+                case ENOBUFS:
+                    continue;
+                case ENOTCONN:
+                    throw std::logic_error("the socket isn't connected");
+                case EOPNOTSUPP:
+                    throw std::runtime_error("the operation isn't supported in the socket");
+                default:
+                    break;
+                {}
+            }
+        } else {
+            mRemainingLength -= bytesRead;
+            break;
+        }
+    }
+
+
+    return bytesRead;
+}
+
+void object::sendBodyPart(const std::vector<std::byte> &buffer) {
+    std::size_t bytesSent = 0;
+
+    while (bytesSent != buffer.size()) {
+        auto sent = send(mSocket, buffer.data() + bytesSent, buffer.size() - bytesSent, 0);
+        if (sent == -1) {
+            switch(errno) {
+                case EACCES:
+                    throw std::runtime_error("tried to broadcast in a non-broadcast socket");
+                case EAGAIN:
+                    throw std::runtime_error("received socket is configured to asynchronous receive");
+                case EBADF:
+                case ENOTSOCK:
+                    throw std::runtime_error("received socket is an invalid file descriptor");
+                case ETIMEDOUT:
+                case ECONNRESET:
+                case EHOSTUNREACH:
+                case ENETDOWN:
+                case ENETUNREACH:
+                case EPIPE:
+                    mConnected = false;
+                    break;
+                case ENOTCONN:
+                    throw std::logic_error("the socket isn't connected");
+                case EFAULT:
+                    std::exit(11);
+                case EINVAL:
+                case EINTR:
+                case ENOBUFS:
+                    continue;
+                case EOPNOTSUPP:
+                    throw std::runtime_error("the operation isn't supported in the socket");
+                case EDESTADDRREQ:
+                    throw std::runtime_error("the socket has no peer-address set");
+                default:
+                    break;
+            }
+        } else {
+            bytesSent += sent;
+        }
+    }
+}
