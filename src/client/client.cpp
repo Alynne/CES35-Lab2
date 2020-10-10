@@ -10,7 +10,10 @@ http_client::get(const http::url& url) noexcept {
 }
 
 std::optional<http::response>
-http_client::get(const http::url& url, const std::string& body) noexcept {
+http_client::get(const http::url& url, const std::string& body) {
+    if (clientState == client_state::DISCONNECTED) {
+        throw std::runtime_error("http client is not connected to a remote server.");
+    }
     http::request GETRequest(http::method::Get, url);
     GETRequest.initialize(socket);
     GETRequest.setContentLength(body.size());
@@ -29,13 +32,17 @@ http_client::get(const http::url& url, const std::string& body) noexcept {
             std::cerr << "Failed to send GET request to " << url.getFullUrl() << std::endl
                     << err.what() << std::endl;
             return std::nullopt;
+        } catch (std::logic_error& err){
+            std::cerr << "HTTP Client socket was disconnected abruptly." << std::endl;
+            clientState = client_state::DISCONNECTED;
+            return std::nullopt;
         }
     }
     // TODO: return http::response(...)
     return std::nullopt;
 }
 
-void 
+bool 
 http_client::saveAt(http::response& response, std::filesystem::path path) {
     if (path.empty()) {
         throw std::runtime_error("path is empty");
@@ -57,15 +64,22 @@ http_client::saveAt(http::response& response, std::filesystem::path path) {
     // Receive body
     size_t bytesReceived;
     http::bytes buffer(recvBufferSize, 0);
+    bool success = true;
     while (true) {
         try {
             bytesReceived = response.recvBody(buffer);
         } catch (std::runtime_error& err) {
             std::cerr << err.what() << std::endl;
+            success = false;
+            break;
+        } catch (std::logic_error& err) {
+            std::cerr << "HTTP Client socket abruptly disconnected." << std::endl;
+            success = false;
             break;
         }
         if (bytesReceived == 0) break;
         downloadStream.write(buffer.c_str(), bytesReceived);
     }
     downloadStream.close();
+    return success;
 }
