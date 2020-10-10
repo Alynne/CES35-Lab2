@@ -18,6 +18,9 @@ enum class client_state {
  */
 class http_client {
 public:
+    http_client(std::string address, std::string port, string path){
+        short addr;
+    };
     /**
      * @brief Creates an http_client with a new TCP socket and connects
      *  to a remote server.

@@ -9,6 +9,8 @@
 #include <string_view>
 #include <vector>
 #include "url.h"
+#include <vector>
+#include <cstddef>
 
 namespace http {
     using bytes = std::string;
