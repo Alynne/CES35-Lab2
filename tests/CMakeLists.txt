@@ -5,5 +5,6 @@ file(GLOB TEST_SOURCES
         "**/*.cpp")
 
 add_executable(${BINARY} ${TEST_SOURCES})
+target_include_directories(${BINARY} PRIVATE ${INCLUDES_ROOT_FOLDER})
 add_test(NAME ${BINARY} COMMAND ${BINARY})
 target_link_libraries(${BINARY} PUBLIC http gtest)
