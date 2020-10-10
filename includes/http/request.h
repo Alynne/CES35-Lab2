@@ -16,9 +16,8 @@ namespace http {
         Put,
         Delete,
         Head,
-        Options,
-        Trace,
-        Connect
+        Link,
+        Unlink
     };
 
     class request: public object {
@@ -27,7 +26,6 @@ namespace http {
             : mMethod(method)
             , object(0ULL, std::move(url), {})
         {
-            setHeader("host", std::string(getUrl().getHost()));
         }
 
         [[nodiscard]] method getMethod() const noexcept {

@@ -23,17 +23,10 @@ void request::writeStartLine(bytes &buffer) const noexcept {
         case method::Head:
             buffer += "HEAD ";
             break;
-        case method::Options:
-            buffer += "OPTIONS ";
-            break;
-        case method::Trace:
-            buffer += "TRACE ";
-            break;
-        case method::Connect:
-            buffer += "CONNECT ";
-            break;
-        default:
-            break;
+        case method::Link:
+            buffer += "LINK ";
+        case method::Unlink:
+            buffer += "UNLINK ";
     }
 
     buffer += getUrl().getFullUrl();
