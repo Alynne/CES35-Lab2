@@ -29,14 +29,22 @@ public:
      */
     virtual ~http_client();
     /**
-     * @brief Sends a crafted http request to the server the client is connected
+     * @brief Sends a crafted http GET request WITH AN EMPTY BODY to the server the client is connected.
+     * @param url The URL to send the GET request
      * @return A response object to collect the response to the request sent.
      */
-    http::response send(const http::request& request) const ;
+    std::optional<http::response> get(const http::url& url) noexcept;
+    /**
+     * @brief Sends a crafted http GET request to the server the client is connected.
+     * @param url The URL to send the GET request
+     * @param body A read buffer with the message body content.
+     * @return A response object to collect the response to the request sent.
+     */
+    std::optional<http::response> get(const http::url& url, const std::string& body) noexcept;
     /**
      * @brief Stores an http response content into a file specified by path
      */
-    void saveAt(http::response& result, std::filesystem::path path) const ;
+    void saveAt(http::response& result, std::filesystem::path path);
     /**
      * @brief Get http client conenction state.
      * @return The state of the client's HTTP connection.
@@ -44,10 +52,15 @@ public:
     client_state getState() const {
         return clientState;
     }
+    void setRecvBufferSize(std::uint64_t size) {
+        recvBufferSize = size;
+    }
+    static constexpr size_t DEFAULT_RECV_BUFFER_SIZE = 4096;
 private:
     int socket; ///<! Client socket descriptor
     struct sockaddr_in serverAddr; ///<! Server address the client is connected to.
     client_state clientState;///<! Client connection status.
+    std::uint64_t recvBufferSize;
 };
 
 #endif
