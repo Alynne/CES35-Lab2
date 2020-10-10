@@ -15,6 +15,7 @@ http_client::get(const http::url& url, const std::string& body) noexcept {
     GETRequest.initialize(socket);
     GETRequest.setContentLength(body.size());
     // Set request headers
+    GETRequest.setHeader("Accept", "*/*");
     GETRequest.setHeader("Cache-Control", "no-cache");
     GETRequest.setHeader("Connection", "keep-alive");
     GETRequest.setHeader("User-Agent", "CES35Lab2/1.0 SimpleHTTPClient");
