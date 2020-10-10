@@ -4,22 +4,27 @@
 
 #include "http/object.h"
 #include "arpa/inet.h"
+#include <algorithm>
+#include <string>
+#include <cctype>
 #include <cerrno>
 
 using namespace http;
 
-size_t object::recvBody(std::vector<std::byte> &buffer) {
+size_t object::recvBody(bytes &buffer) {
     size_t bytesRead;
     while (true) {
-        bytesRead = recv(mSocket, (void*)buffer.data(), buffer.size(), 0);
+        bytesRead = recv(mSocket, (void *) buffer.data(), buffer.size(), 0);
 
         if (bytesRead == -1) {
             switch (errno) {
                 case EAGAIN:
-                    throw std::runtime_error("received socket is configured to asynchronous receive");
+                    throw std::runtime_error(
+                            "received socket is configured to asynchronous receive");
                 case EBADF:
                 case ENOTSOCK:
-                    throw std::runtime_error("received socket is an invalid file descriptor");
+                    throw std::runtime_error(
+                            "received socket is an invalid file descriptor");
                 case ETIMEDOUT:
                 case ECONNRESET:
                     mConnected = false;
@@ -33,10 +38,11 @@ size_t object::recvBody(std::vector<std::byte> &buffer) {
                 case ENOTCONN:
                     throw std::logic_error("the socket isn't connected");
                 case EOPNOTSUPP:
-                    throw std::runtime_error("the operation isn't supported in the socket");
+                    throw std::runtime_error(
+                            "the operation isn't supported in the socket");
                 default:
                     break;
-                {}
+                    {}
             }
         } else {
             mRemainingLength -= bytesRead;
@@ -48,20 +54,24 @@ size_t object::recvBody(std::vector<std::byte> &buffer) {
     return bytesRead;
 }
 
-void object::sendBodyPart(const std::vector<std::byte> &buffer) {
+void object::sendBodyPart(const bytes &buffer) {
     std::size_t bytesSent = 0;
 
     while (bytesSent != buffer.size()) {
-        auto sent = send(mSocket, buffer.data() + bytesSent, buffer.size() - bytesSent, 0);
+        auto sent = send(mSocket, buffer.data() + bytesSent, buffer.size() - bytesSent,
+                         0);
         if (sent == -1) {
-            switch(errno) {
+            switch (errno) {
                 case EACCES:
-                    throw std::runtime_error("tried to broadcast in a non-broadcast socket");
+                    throw std::runtime_error(
+                            "tried to broadcast in a non-broadcast socket");
                 case EAGAIN:
-                    throw std::runtime_error("received socket is configured to asynchronous receive");
+                    throw std::runtime_error(
+                            "received socket is configured to asynchronous receive");
                 case EBADF:
                 case ENOTSOCK:
-                    throw std::runtime_error("received socket is an invalid file descriptor");
+                    throw std::runtime_error(
+                            "received socket is an invalid file descriptor");
                 case ETIMEDOUT:
                 case ECONNRESET:
                 case EHOSTUNREACH:
@@ -79,7 +89,8 @@ void object::sendBodyPart(const std::vector<std::byte> &buffer) {
                 case ENOBUFS:
                     continue;
                 case EOPNOTSUPP:
-                    throw std::runtime_error("the operation isn't supported in the socket");
+                    throw std::runtime_error(
+                            "the operation isn't supported in the socket");
                 case EDESTADDRREQ:
                     throw std::runtime_error("the socket has no peer-address set");
                 default:
@@ -88,5 +99,39 @@ void object::sendBodyPart(const std::vector<std::byte> &buffer) {
         } else {
             bytesSent += sent;
         }
+    }
+}
+
+void object::sendHead() {
+    bytes buffer;
+    buffer.reserve(1024);
+
+    writeStartLine(buffer);
+    writeHeaders(buffer);
+
+    buffer += "\r\n";
+
+    sendBodyPart(buffer);
+}
+
+void object::writeHeaders(bytes &buffer) const noexcept {
+    buffer += "content-length: ";
+    buffer += std::to_string(mContentLength);
+    buffer += "\r\n";
+
+    for (const auto& h: getHeaders()) {
+        buffer += h.first;
+        buffer += ": ";
+        buffer += h.second;
+        buffer += "\r\n";
+    }
+}
+
+void object::setHeader(std::string header, std::string value) noexcept {
+    std::transform(header.begin(), header.end(), header.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+
+    if (header != "content-length") {
+        mHeaders[std::move(header)] = std::move(value);
     }
 }

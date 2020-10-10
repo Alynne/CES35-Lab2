@@ -6,10 +6,7 @@
 
 using namespace http;
 
-void request::sendHead() {
-    std::string buffer;
-    buffer.reserve(1024);
-
+void request::writeStartLine(bytes &buffer) const noexcept {
     switch (mMethod) {
         case method::Get:
             buffer += "GET ";
@@ -41,15 +38,5 @@ void request::sendHead() {
 
     buffer += getUrl().getFullUrl();
     buffer += " HTTP/1.0\r\n";
-
-    auto headers = getHeaders();
-    for (auto& h : headers) {
-        buffer += h.first;
-        buffer += ':';
-        buffer += h.second;
-        buffer += "\r\n";
-    }
-
-    buffer += "\r\n";
 }
 

@@ -10,7 +10,7 @@
 #include "url.h"
 
 namespace http {
-    enum method {
+    enum class method {
         Get,
         Post,
         Put,
@@ -38,9 +38,10 @@ namespace http {
             mMethod = method;
         }
 
-        void sendHead();
-
         static std::optional<request> parse(int socket);
+
+    protected:
+        void writeStartLine(bytes &buffer) const noexcept override;
     private:
         method mMethod;
     };

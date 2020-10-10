@@ -11,6 +11,8 @@
 #include "url.h"
 
 namespace http {
+    using bytes = std::string;
+
     class object {
     public:
         using headers = std::unordered_map<std::string, std::string>;
@@ -41,9 +43,7 @@ namespace http {
             }
         }
 
-        void setHeader(std::string header, std::string value) noexcept {
-            mHeaders[std::move(header)] = std::move(value);
-        }
+        void setHeader(std::string header, std::string value) noexcept;
 
         [[nodiscard]] const headers& getHeaders() const noexcept {
             return mHeaders;
@@ -53,8 +53,10 @@ namespace http {
             mContentLength = length;
         }
 
-        size_t recvBody(std::vector<std::byte> &buffer);
-        void sendBodyPart(const std::vector<std::byte> &buffer);
+        size_t recvBody(bytes &buffer);
+        void sendBodyPart(const bytes &buffer);
+
+        void sendHead();
 
     protected:
         object(std::uint64_t contentLength, url url, headers headers)
@@ -63,6 +65,9 @@ namespace http {
             , mRemainingLength(contentLength)
             , mHeaders(std::move(headers))
         {}
+
+        virtual void writeStartLine(bytes &buffer) const noexcept {}
+        void writeHeaders(bytes &buffer) const noexcept;
 
         void initialize(int socket) noexcept {
             mSocket = socket;
