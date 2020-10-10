@@ -5,7 +5,7 @@
 
 class http_client {
     http_client();
-    http_response send(const http_request& request);
+    http::response send(const http::request& request);
 };
 
 

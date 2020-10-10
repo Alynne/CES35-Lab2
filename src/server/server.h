@@ -7,8 +7,8 @@
 
 class http_connection {
 public:
-    http_request parse();
-    void send(http_object response);
+    http::request parse();
+    void send(http::object response);
 };
 
 class http_server {
