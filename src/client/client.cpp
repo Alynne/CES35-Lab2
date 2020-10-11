@@ -4,7 +4,7 @@
 #include "client.h"
 
 std::optional<http::response>
-http_client::get(const http::url& url) noexcept {
+http_client::get(const http::url& url) {
     std::string emptyBody;
     return get(url, emptyBody);
 }
