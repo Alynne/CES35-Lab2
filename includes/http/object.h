@@ -73,6 +73,7 @@ namespace http {
         virtual void writeStartLine(bytes &buffer) const noexcept {}
         void writeHeaders(bytes &buffer) const noexcept;
 
+        static size_t recvFromSock(int socket, void* buffer, int size);
     private:
         int mSocket = -1;
         bool mConnected = true;

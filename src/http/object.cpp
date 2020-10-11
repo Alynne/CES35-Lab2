@@ -12,44 +12,19 @@
 using namespace http;
 
 size_t object::recvBody(bytes &buffer) {
-    size_t bytesRead;
-    while (true) {
-        bytesRead = recv(mSocket, (void *) buffer.data(), buffer.size(), 0);
+    errno = 0;
+    auto bytesRead = recvFromSock(mSocket, buffer.data(), buffer.size());
 
-        if (bytesRead == -1) {
-            switch (errno) {
-                case EAGAIN:
-                    throw std::runtime_error(
-                            "received socket is configured to asynchronous receive");
-                case EBADF:
-                case ENOTSOCK:
-                    throw std::runtime_error(
-                            "received socket is an invalid file descriptor");
-                case ETIMEDOUT:
-                case ECONNRESET:
-                    mConnected = false;
-                    break;
-                case EFAULT:
-                    std::exit(11);
-                case EINVAL:
-                case EINTR:
-                case ENOBUFS:
-                    continue;
-                case ENOTCONN:
-                    throw std::logic_error("the socket isn't connected");
-                case EOPNOTSUPP:
-                    throw std::runtime_error(
-                            "the operation isn't supported in the socket");
-                default:
-                    break;
-                    {}
-            }
-        } else {
-            mRemainingLength -= bytesRead;
+    switch (errno) {
+        case ETIMEDOUT:
+        case ECONNRESET:
+            mConnected = false;
             break;
-        }
+        default:
+            break;
     }
 
+    mRemainingLength -= bytesRead;
 
     return bytesRead;
 }
@@ -136,4 +111,42 @@ void object::setHeader(std::string header, std::string value) noexcept {
     if (header != "content-length") {
         mHeaders[std::move(header)] = std::move(value);
     }
+}
+
+size_t object::recvFromSock(int socket, void* buffer, int size) {
+    size_t bytesRead;
+
+    while (true) {
+        bytesRead = recv(socket, buffer, size, 0);
+
+        if (bytesRead == -1) {
+            switch (errno) {
+                case EAGAIN:
+                    throw std::runtime_error(
+                            "received socket is configured to asynchronous receive");
+                case EBADF:
+                case ENOTSOCK:
+                    throw std::runtime_error(
+                            "received socket is an invalid file descriptor");
+                case EFAULT:
+                    std::exit(11);
+                case EINVAL:
+                case EINTR:
+                case ENOBUFS:
+                    continue;
+                case ENOTCONN:
+                    throw std::logic_error("the socket isn't connected");
+                case EOPNOTSUPP:
+                    throw std::runtime_error(
+                            "the operation isn't supported in the socket");
+                default:
+                    break;
+                    {}
+            }
+        } else {
+            break;
+        }
+    }
+
+    return bytesRead;
 }

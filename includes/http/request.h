@@ -36,7 +36,7 @@ namespace http {
             mMethod = method;
         }
 
-        static std::optional<request> parse(int socket);
+        static std::optional<std::pair<request, bytes>> parse(int socket);
 
     protected:
         void writeStartLine(bytes &buffer) const noexcept override;
