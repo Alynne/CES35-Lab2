@@ -117,8 +117,7 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
 
     // Parse request line.
     while (true) {
-        // TODO: handle errors.
-        auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
+        auto received = recvFromSock(socket, buffer.data() + off, buffer.capacity() - off);
         if (received == -1) {
         } else if (received != 0) {
             auto lineEnd = buffer.find_first_of('\r');
@@ -144,8 +143,7 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
     while(true) {
         auto nextEnd = buffer.find_first_of('\r', headerStart);
         if (nextEnd == std::string::npos) {
-            // TODO: handle errors.
-            auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
+            auto received = recvFromSock(socket, buffer.data() + off, buffer.capacity() - off);
             if (received == -1) {
             } else if (received != 0) {
                 off += received;

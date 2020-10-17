@@ -53,6 +53,7 @@ namespace http {
                 case code::ServiceUnavailable: return "503";
             }
         }
+
         [[nodiscard]] constexpr std::string_view reasonPhrase() const noexcept {
             switch (mCode) {
                 case code::Ok: return "Ok";
@@ -80,10 +81,10 @@ namespace http {
 
     class response : public object {
     public:
-        explicit response(const request& request)
-            : object(0ULL, request.getUrl(), {})
-            , mStatusCode(status::Ok)
-        {}
+        explicit response(status statusCode)
+                : object(0ULL, {})
+                  , mStatusCode(statusCode)
+        {};
 
         [[nodiscard]] status getStatusCode() const noexcept {
             return mStatusCode;
@@ -95,10 +96,6 @@ namespace http {
 
         static std::optional<std::pair<response, bytes>> parse(int socket);
     protected:
-        explicit response(status statusCode)
-            : object(0ULL, url(), {})
-            , mStatusCode(statusCode)
-        {};
 
         void writeStartLine(bytes &buffer) const noexcept override;
     private:

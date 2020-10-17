@@ -24,8 +24,13 @@ namespace http {
     public:
         request(method method, url url)
             : mMethod(method)
-            , object(0ULL, std::move(url), {})
+            , mUrl(std::move(url))
+            , object(0ULL, {})
         {
+        }
+
+        [[nodiscard]] const url& getUrl() const noexcept {
+            return mUrl;
         }
 
         [[nodiscard]] method getMethod() const noexcept {
@@ -42,6 +47,7 @@ namespace http {
         void writeStartLine(bytes &buffer) const noexcept override;
     private:
         method mMethod;
+        url mUrl;
     };
 }
 

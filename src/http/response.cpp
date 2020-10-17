@@ -70,10 +70,8 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
 
     // Parse request line.
     while (true) {
-        // TODO: handle errors.
-        auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
-        if (received == -1) {
-        } else if (received != 0) {
+        auto received = recvFromSock(socket, buffer.data() + off, buffer.capacity() - off);
+        if (received != 0 && received != -1) {
             auto lineEnd = buffer.find_first_of('\r');
             if (lineEnd == std::string::npos) {
                 buffer.reserve(buffer.capacity() + 4096);
@@ -97,10 +95,8 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
     while (true) {
         auto nextEnd = buffer.find_first_of('\r', headerStart);
         if (nextEnd == std::string::npos) {
-            // TODO: handle errors
-            auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
-            if (received == -1) {
-            } else if (received != 0) {
+            auto received = recvFromSock(socket, buffer.data() + off, buffer.capacity() - off);
+            if (received != 0 && received != -1) {
                 off += received;
             }
         } else {

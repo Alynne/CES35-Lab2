@@ -31,10 +31,6 @@ namespace http {
             return mRemainingLength;
         }
 
-        [[nodiscard]] const url& getUrl() const noexcept {
-            return mUrl;
-        }
-
         [[nodiscard]]
         std::optional<std::string_view> getHeader(const std::string& header) const noexcept {
             try {
@@ -64,9 +60,8 @@ namespace http {
         }
 
     protected:
-        object(std::uint64_t contentLength, url url, headers headers)
+        object(std::uint64_t contentLength, headers headers)
             : mContentLength(contentLength)
-            , mUrl(std::move(url))
             , mRemainingLength(contentLength)
             , mHeaders(std::move(headers))
         {}
@@ -79,7 +74,6 @@ namespace http {
     private:
         int mSocket = -1;
         bool mConnected = true;
-        url mUrl;
         std::uint64_t mContentLength;
         std::uint64_t mRemainingLength;
         headers mHeaders;
