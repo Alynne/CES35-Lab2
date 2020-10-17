@@ -34,13 +34,6 @@ void request::writeStartLine(bytes &buffer) const noexcept {
     buffer += " HTTP/1.0\r\n";
 }
 
-std::string_view
-substringView(const std::string &buffer, size_t start, size_t len) {
-    if (start > buffer.size()) return {};
-    return std::string_view{buffer.c_str() + start,
-                            std::min(buffer.size() - start, len)};
-}
-
 static std::optional<std::pair<method, url>>
 parseRequestLine(const std::string &buffer) {
     method requestMethod;
