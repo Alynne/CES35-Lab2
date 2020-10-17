@@ -95,7 +95,7 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
     while (true) {
         auto nextEnd = buffer.find_first_of('\r', headerStart);
         if (nextEnd == std::string::npos || (nextEnd <= buffer.size() && nextEnd > buffer.size() - 4)) {
-            buffer.reserve(1024);
+            buffer.reserve(buffer.capacity() + 1024);
             auto received = recvFromSock(socket, buffer.data() + off, buffer.capacity() - off);
             if (received != 0 && received != -1) {
                 off += received;
