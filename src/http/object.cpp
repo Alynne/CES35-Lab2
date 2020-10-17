@@ -13,7 +13,12 @@ using namespace http;
 
 size_t object::recvBody(bytes &buffer) {
     errno = 0;
-    auto bytesRead = recvFromSock(mSocket, buffer.data(), buffer.size());
+    if (mRemainingLength == 0) {
+        return 0;
+    }
+
+    auto readSize = std::min(mRemainingLength, (std::uint64_t) buffer.size());
+    auto bytesRead = recvFromSock(mSocket, buffer.data(), readSize);
 
     switch (errno) {
         case ETIMEDOUT:
