@@ -1,13 +1,18 @@
 
+#include <arpa/inet.h>
 #include <cerrno>
 #include <chrono>
 #include <iostream>
 #include <forward_list>
+#include <sstream>
 #include <thread>
 #include "server.h"
+#include "http.h"
 
 http_connection::http_connection(int connSocket, struct sockaddr_in clientAddr) 
-:   connSocket(connSocket), clientAddr(clientAddr)
+:   connSocket(connSocket), 
+    clientAddr(clientAddr), 
+    servingRoot()
 {}
 
 http_connection::~http_connection() {
@@ -16,21 +21,101 @@ http_connection::~http_connection() {
 
 void
 http_connection::serve() {
-    // TODO:
-    // 1) Create http_request object that will gradually receive and parse the request
-    // 2) Call recv to receive header
-    // 3) Call recv to receive body
-    // 4) Check validity of request and if the server is able to attend.
-    // 5) Create http_response
-    // 5) Craft http_response header
-    // 5.1) Fill error information (code) if invalid request
-    // 6) Send http_response back
-    // 6.1) Send gradually the resource in the body.
-    // 7) Die.
+    // Call recv to receive request
+    try {
+        auto request = recvRequest();
+        http::response response(http::status::Ok); // TODO
+        http::bytes data;
+        //
+        // Check path, respond 400 or 404 if there are any errors.
+        //
+        auto resourcePathStr = request.getUrl().getPath();
+        if (resourcePathStr.empty()) {
+            // Respond 400, no path
+            response.setStatusCode(http::status::BadRequest);
+            data = "Empty path";
+            response.setContentLength(data.size());
+        } else if (resourcePathStr[0] != '/') {
+            // Respond 400, wrong format
+            response.setStatusCode(http::status::BadRequest);
+            data = "Bad path";
+            response.setContentLength(data.size());
+        } else {
+            auto resourcePath = servingRoot / std::filesystem::path(resourcePathStr.substr(1));
+            if (!std::filesystem::exists(resourcePath)) {
+                // Respond 404, no such path
+                // TODO
+            }
+            if (std::filesystem::is_directory(resourcePath)) {
+                // Look for an "index.html" inside the directory
+                resourcePath = resourcePath / std::filesystem::path("index.html");
+                if (!std::filesystem::exists(resourcePath)) {
+                    // Respond 404, no such index.html
+                    // TODO
+                }
+            }
+        }
+        response.sendHead();
+        if (response.getStatusCode().getCode() != http::status::Ok) {
+            response.sendBodyPart(data);
+        } else {
+            // TODO
+        }
+        
+    } catch (std::runtime_error& err) {
+        std::cerr << err.what() << std::endl;
+        std::cerr << "Aborting connection..." << std::endl;
+    }
+}
+
+http::request
+http_connection::recvRequest() {
+    auto requestParseResult = http::request::parse(connSocket);
+    if (!requestParseResult.has_value()) {
+        // Some problem occured when receiving the request.
+        std::stringstream ss;
+        ss  << "Failed to receive and parse incoming request from " 
+            << inet_ntoa(clientAddr.sin_addr) << ":" << clientAddr.sin_port;
+        throw std::runtime_error(ss.str());
+    }
+    http::request recvRequest = requestParseResult.value().first;
+    http::bytes body = requestParseResult.value().second;
+    //
+    // Call recv to receive remaining body.
+    //
+    const size_t BODY_PART_SIZE = 4096;
+    http::bytes remainingBody(BODY_PART_SIZE, '\0');
+    size_t totalBytesReceived = 0;
+    while (true) {
+        size_t bytesReceived;
+        try {
+            bytesReceived = recvRequest.recvBody(remainingBody);
+        } catch (std::logic_error& err) {
+            std::stringstream ss(err.what());
+            ss << std::endl << "HTTP Client socket abruptly disconnected.";
+            throw std::runtime_error(ss.str());
+        }
+        if (bytesReceived == 0) break;
+        totalBytesReceived += bytesReceived;
+        if (totalBytesReceived == remainingBody.length()) {
+            remainingBody.resize(remainingBody.length() + BODY_PART_SIZE);
+        }
+    }
+    body.append(remainingBody);
+    //
+    // We just ignore this body stuff k k k k k k
+    // Not useful for this activity
+    //
+    return {recvRequest};
 }
 
 void 
-http_server::run() {
+http_connection::send(http::response response) {
+
+}
+
+void 
+http_server::run() noexcept {
     int openedConnections = 0;
     std::forward_list<std::thread> workers;
     while (true) {
@@ -61,7 +146,7 @@ http_server::run() {
         }
         // Spawn worker to handle connection
         http_connection connection(clientSockfd, clientAddr);
-        std::thread connWorker(connection);
+        std::thread connWorker(connection, serverRoot);
         openedConnections++;
         workers.emplace_front(std::move(connWorker));
     }

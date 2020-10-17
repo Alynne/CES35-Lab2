@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <filesystem>
 #include <string>
 #include "http.h"
 
@@ -24,12 +25,20 @@ public:
     /**
      * @brief Call operator, redirect to the serve() function.
      */
-    void operator() () {
+    void operator() (const std::filesystem::path& servingRoot) {
+        this->servingRoot = servingRoot;
         serve();
     }
 private:
-    http::request parse();
-    void send(http::object response);
+    /**
+     * @brief Completely receives requests from connected client.
+     */
+    http::request recvRequest();
+    /**
+     * @brief Completely sends response to connected client.
+     */
+    void send(http::response response);
+    std::filesystem::path servingRoot;
     int connSocket; ///<! Socket descriptor for connection.
     struct sockaddr_in clientAddr; ///<! Address of client.
 };
@@ -40,7 +49,7 @@ public:
     /**
      * @brief Starts and runs the HTTP server.
      */
-    [[noreturn]] void run();
+    [[noreturn]] void run() noexcept;
 
     static constexpr int DEFAULT_MAX_CONNECTIONS = 20;
     static constexpr int DEFAULT_WORKER_WAIT_MSEC = 50;
@@ -51,6 +60,7 @@ private:
     int socket; ///<! Socket descriptor
     int maxConnections; ///<! Max number of concurrent connections.
     int workerWaitMSec; ///<! Wait time for a worker to finish in msec.
+    std::filesystem::path serverRoot;
 };
 
 #endif
