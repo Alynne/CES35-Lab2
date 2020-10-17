@@ -10,9 +10,23 @@ http_connection::http_connection(int connSocket, struct sockaddr_in clientAddr)
 :   connSocket(connSocket), clientAddr(clientAddr)
 {}
 
+http_connection::~http_connection() {
+    close(connSocket);
+}
+
 void
 http_connection::serve() {
-    // TODO
+    // TODO:
+    // 1) Create http_request object that will gradually receive and parse the request
+    // 2) Call recv to receive header
+    // 3) Call recv to receive body
+    // 4) Check validity of request and if the server is able to attend.
+    // 5) Create http_response
+    // 5) Craft http_response header
+    // 5.1) Fill error information (code) if invalid request
+    // 6) Send http_response back
+    // 6.1) Send gradually the resource in the body.
+    // 7) Die.
 }
 
 void 

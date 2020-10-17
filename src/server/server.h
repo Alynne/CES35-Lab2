@@ -4,6 +4,7 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <unistd.h>
 #include <string>
 #include "http.h"
 
@@ -15,6 +16,7 @@ public:
      * @param connSocket The socket descriptor created for the connection.
      */
     http_connection(int connSocket, struct sockaddr_in clientAddr);
+    virtual ~http_connection();
     /**
      * @brief The handler function. Serves the HTTP client connected.
      */
