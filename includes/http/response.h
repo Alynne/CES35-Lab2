@@ -75,6 +75,10 @@ namespace http {
             }
         }
 
+        [[nodiscard]] code getCode() const noexcept {
+            return mCode;
+        }
+
     private:
         code mCode;
     };
