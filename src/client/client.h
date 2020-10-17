@@ -31,16 +31,14 @@ public:
     /**
      * @brief Sends a crafted http GET request WITH AN EMPTY BODY to the server the client is connected.
      * @param url The URL to send the GET request
-     * @return A response object to collect the response to the request sent.
      */
-    std::optional<http::response> get(const http::url& url);
+    void get(const http::url& url);
     /**
      * @brief Sends a crafted http GET request to the server the client is connected.
      * @param url The URL to send the GET request
      * @param body A read buffer with the message body content.
-     * @return A response object to collect the response to the request sent.
      */
-    std::optional<http::response> get(const http::url& url, const std::string& body);
+    void get(const http::url& url, const std::string& body);
     /**
      * @brief Stores an http response content into a file specified by path
      * @param result The HTTP response that receives the data.

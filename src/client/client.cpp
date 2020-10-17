@@ -3,13 +3,13 @@
 #include <sstream>
 #include "client.h"
 
-std::optional<http::response>
+void
 http_client::get(const http::url& url) {
     std::string emptyBody;
-    return get(url, emptyBody);
+    get(url, emptyBody);
 }
 
-std::optional<http::response>
+void
 http_client::get(const http::url& url, const std::string& body) {
     if (clientState == client_state::DISCONNECTED) {
         throw std::runtime_error("http client is not connected to a remote server.");
@@ -29,17 +29,16 @@ http_client::get(const http::url& url, const std::string& body) {
         try {
             GETRequest.sendBodyPart(body);
         } catch (std::runtime_error& err) {
-            std::cerr << "Failed to send GET request to " << url.getFullUrl() << std::endl
-                    << err.what() << std::endl;
-            return std::nullopt;
+            std::stringstream ss(err.what());
+            ss << "\nFailed to send GET request to " << url.getFullUrl();;
+            throw std::runtime_error(ss.str());
         } catch (std::logic_error& err){
-            std::cerr << "HTTP Client socket was disconnected abruptly." << std::endl;
+            std::stringstream ss(err.what());
+            ss << "\nHTTP Client socket was disconnected abruptly." << std::endl;
             clientState = client_state::DISCONNECTED;
-            return std::nullopt;
+            throw std::runtime_error(ss.str());
         }
     }
-    // TODO: return http::response(...)
-    return std::nullopt;
 }
 
 bool 
