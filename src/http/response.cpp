@@ -105,7 +105,9 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
                                    && buffer[nextEnd + 2] == '\r'
                                    && buffer[nextEnd + 3] == '\n';
             if (headersFinished) {
-                return {{parsedResponse.value(), buffer.substr(headersFinished + 4)}};
+                auto bodyStart = buffer.substr(nextEnd + 4);
+                parsedResponse->consumeBody(buffer.size() - bodyStart.size());
+                return {{parsedResponse.value(), std::move(bodyStart)}};
             } else {
                 auto headerName = buffer.find_first_of(':', headerStart);
                 if (headerName == std::string::npos) {

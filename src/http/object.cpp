@@ -29,7 +29,7 @@ size_t object::recvBody(bytes &buffer) {
             break;
     }
 
-    mRemainingLength -= bytesRead;
+    consumeBody(bytesRead);
 
     return bytesRead;
 }

@@ -70,6 +70,10 @@ namespace http {
 
         void writeHeaders(bytes &buffer) const noexcept;
 
+        void consumeBody(std::uint64_t consumed) noexcept {
+            mRemainingLength -= consumed;
+        }
+
         static size_t recvFromSock(int socket, void* buffer, int size);
     private:
         int mSocket = -1;

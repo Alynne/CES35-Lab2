@@ -154,7 +154,9 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
                     && buffer[nextEnd + 2] == '\r'
                     && buffer[nextEnd + 3] == '\n';
             if (headersFinished) {
-                return {{parsedRequest.value(), buffer.substr(headersFinished + 4) }};
+                auto bodyStart = buffer.substr(nextEnd + 4);
+                parsedRequest->consumeBody(buffer.size() - bodyStart.size());
+                return {{parsedRequest.value(), std::move(bodyStart) }};
             } else {
                 auto headerName = buffer.find_first_of(':', headerStart);
                 if (headerName == std::string::npos) {
