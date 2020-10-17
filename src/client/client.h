@@ -40,12 +40,11 @@ public:
      */
     void get(const http::url& url, const std::string& body);
     /**
-     * @brief Stores an http response content into a file specified by path
-     * @param result The HTTP response that receives the data.
+     * @brief Receives an http response and store the body into a file specified by path
      * @param path Path to the file to store the retrieved data.
      * @return True if the response is successfully retrieved and stored under path.
      */
-    bool saveAt(http::response& result, std::filesystem::path path);
+    bool saveAt(std::filesystem::path path);
     /**
      * @brief Get http client conenction state.
      * @return The state of the client's HTTP connection.

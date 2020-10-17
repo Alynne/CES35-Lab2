@@ -42,7 +42,7 @@ http_client::get(const http::url& url, const std::string& body) {
 }
 
 bool 
-http_client::saveAt(http::response& response, std::filesystem::path path) {
+http_client::saveAt(std::filesystem::path path) {
     if (path.empty()) {
         throw std::runtime_error("path is empty");
     }
@@ -59,7 +59,16 @@ http_client::saveAt(http::response& response, std::filesystem::path path) {
     std::ofstream downloadStream;
     downloadStream.open(path.string(), std::ios_base::out | std::ios_base::binary);
     // Receive header
-    // TODO
+    auto responseResult = http::response::parse(socket);
+    if (!responseResult.has_value()) {
+        throw std::runtime_error("Could not receive or parse response.");
+        // TODO: Better error?
+    }
+    auto [response, leftovers] = responseResult.value();
+    // Write initial body data, if any
+    if (leftovers.size() > 0) {
+        downloadStream.write(leftovers.c_str(), leftovers.size());
+    }
     // Receive body
     size_t bytesReceived;
     http::bytes buffer(recvBufferSize, 0);
