@@ -36,7 +36,9 @@ http_client::http_client(std::string host, std::uint16_t port){
             char ipstr[INET_ADDRSTRLEN] = {'\0'};
             inet_ntop(res->ai_family, &(serverAddr.sin_addr), ipstr, sizeof(ipstr));
             std::cout << "  " << ipstr << std::endl;
-            
+            if (connect(socket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
+                perror("connect");
+            }
             clientState = client_state::CONNECTED;
         }
         else {
