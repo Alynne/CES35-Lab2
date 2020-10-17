@@ -11,6 +11,15 @@
 
 using namespace http;
 
+namespace http {
+    std::string_view
+    substringView(const std::string &buffer, size_t start, size_t len) {
+        if (start > buffer.size()) return {};
+        return std::string_view{buffer.c_str() + start,
+                                std::min(buffer.size() - start, len)};
+    }
+}
+
 size_t object::recvBody(bytes &buffer) {
     errno = 0;
     if (mRemainingLength == 0) {

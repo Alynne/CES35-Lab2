@@ -13,6 +13,8 @@
 namespace http {
     using bytes = std::string;
 
+    std::string_view substringView(const std::string &buffer, size_t start, size_t len);
+
     class object {
     public:
         using headers = std::unordered_map<std::string, std::string>;
