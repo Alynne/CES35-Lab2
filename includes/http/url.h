@@ -38,6 +38,12 @@ namespace http {
         /// Parses a string into a URL, if possible.
         static std::optional<url> parse(std::string url);
 
+        url()
+            : mUrl()
+              , mScheme()
+              , mHost()
+              , mPath()
+              , port() {}
     private:
         url(std::string url, std::uint8_t scheme,
             std::pair<std::uint16_t, std::uint16_t> host, std::uint16_t port,

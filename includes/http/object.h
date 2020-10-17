@@ -17,10 +17,11 @@ namespace http {
     public:
         using headers = std::unordered_map<std::string, std::string>;
 
+        virtual ~object() = default;
+
         [[nodiscard]] bool isConnected() const noexcept {
             return mConnected;
         }
-
 
         [[nodiscard]] std::uint64_t getContentLength() const noexcept {
             return mContentLength;
@@ -71,13 +72,14 @@ namespace http {
         {}
 
         virtual void writeStartLine(bytes &buffer) const noexcept {}
+
         void writeHeaders(bytes &buffer) const noexcept;
 
         static size_t recvFromSock(int socket, void* buffer, int size);
     private:
         int mSocket = -1;
         bool mConnected = true;
-        const url mUrl;
+        url mUrl;
         std::uint64_t mContentLength;
         std::uint64_t mRemainingLength;
         headers mHeaders;

@@ -7,5 +7,9 @@
 #include "http/response.h"
 #include "http/url.h"
 
+namespace http {
+    std::string_view substringView(const std::string &buffer, size_t start, size_t len);
+}
+
 
 #endif //PROJETO2_HTTP_H
