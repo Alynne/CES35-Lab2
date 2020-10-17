@@ -18,7 +18,9 @@ size_t object::recvBody(bytes &buffer) {
     }
 
     auto readSize = std::min(mRemainingLength, (std::uint64_t) buffer.size());
+    buffer.resize(readSize);
     auto bytesRead = recvFromSock(mSocket, buffer.data(), readSize);
+    buffer.resize(bytesRead);
 
     switch (errno) {
         case ETIMEDOUT:
