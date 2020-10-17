@@ -3,8 +3,9 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <filesystem>
+#include <experimental/filesystem>
 #include "http.h"
+#include <optional>
 
 enum class client_state {
     DISCONNECTED = 0,
@@ -18,13 +19,12 @@ enum class client_state {
  */
 class http_client {
 public:
-    http_client(std::string address, std::string port, std::string path);
     /**
      * @brief Creates an http_client with a new TCP socket and connects
      *  to a remote server.
      * @param serverAddr A string with the address of the server (ip/hostname + port).
      */
-    http_client(std::string serverAddr);
+    http_client(std::string host, std::uint16_t port);
     /**
      * @brief Default destructor. Closes the TCP socket.
      */
@@ -45,7 +45,7 @@ public:
      * @param path Path to the file to store the retrieved data.
      * @return True if the response is successfully retrieved and stored under path.
      */
-    bool saveAt(std::filesystem::path path);
+    bool saveAt(std::experimental::filesystem::path path);
     /**
      * @brief Get http client conenction state.
      * @return The state of the client's HTTP connection.

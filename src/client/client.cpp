@@ -2,6 +2,53 @@
 #include <iostream>
 #include <sstream>
 #include "client.h"
+#include <optional>
+
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <unistd.h>
+
+#include <string>
+#include <iostream>
+
+http_client::http_client(std::string host, std::uint16_t port){
+    //Create TCP IP socket
+    socket = ::socket(AF_INET, SOCK_STREAM, 0);
+    clientState = client_state::DISCONNECTED;
+    //Resolving address
+    struct addrinfo hints;
+    struct addrinfo* res = NULL;
+    // hints - modo de configurar o socket para o tipo  de transporte
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET; // IPv4
+    hints.ai_socktype = SOCK_STREAM; // TCP
+    int resolve_status = 0;
+    std::string portStr = std::to_string(port);
+    if ((resolve_status = getaddrinfo(host.c_str(), portStr.c_str(), &hints, &res))) {
+        if (res != NULL){
+            serverAddr = *((struct sockaddr_in*) res->ai_addr);
+            //Printing ip address for debugging
+            char ipstr[INET_ADDRSTRLEN] = {'\0'};
+            inet_ntop(res->ai_family, &(serverAddr.sin_addr), ipstr, sizeof(ipstr));
+            std::cout << "  " << ipstr << std::endl;
+            
+            clientState = client_state::CONNECTED;
+        }
+        else {
+            std::cout << "Not able to resolve address."<< std::endl;
+        }
+
+    }
+
+}
+http_client::~http_client() {
+  ::close(socket);
+}
 
 void
 http_client::get(const http::url& url) {
@@ -42,7 +89,7 @@ http_client::get(const http::url& url, const std::string& body) {
 }
 
 bool 
-http_client::saveAt(std::filesystem::path path) {
+http_client::saveAt(std::experimental::filesystem::path path) {
     if (path.empty()) {
         throw std::runtime_error("path is empty");
     }
@@ -51,7 +98,7 @@ http_client::saveAt(std::filesystem::path path) {
         ss << "path " << path.string() << " does not correspond to a file.";
         throw std::runtime_error(ss.str());
     }
-    if (!std::filesystem::exists(path.parent_path())) {
+    if (!std::experimental::filesystem::exists(path.parent_path())) {
         std::stringstream ss;
         ss << "path " << path.parent_path().string() << " does not exist.";
         throw std::runtime_error(ss.str());
