@@ -9,6 +9,19 @@
 #include "server.h"
 #include "http.h"
 
+#include <fstream>
+
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <unistd.h>
+
+#include <string>
+
+
 http_connection::http_connection(int connSocket, struct sockaddr_in clientAddr) 
 :   connSocket(connSocket), 
     clientAddr(clientAddr), 
@@ -151,6 +164,59 @@ http_server::run() noexcept {
         workers.emplace_front(std::move(connWorker));
     }
     exit(0);
+}
+
+http_server::http_server(std::string host, unsigned short port, std::string dir){
+    socket = ::socket(AF_INET, SOCK_STREAM, 0);
+    int yes = 1;
+    if (setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+        perror("setsockopt");
+    }
+    //Resolving address
+    struct addrinfo hints;
+    struct addrinfo* res = NULL;
+    // hints - modo de configurar o socket para o tipo  de transporte
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET; // IPv4
+    hints.ai_socktype = SOCK_STREAM; // TCP
+    int resolve_status = 0;
+    std::string portStr = std::to_string(port);
+    if ((resolve_status = getaddrinfo(host.c_str(), portStr.c_str(), &hints, &res))== 0) {
+        if (res != NULL){
+            addr = *((struct sockaddr_in*) res->ai_addr);
+            //Printing ip address for debugging
+            char ipstr[INET_ADDRSTRLEN] = {'\0'};
+            inet_ntop(res->ai_family, &(addr.sin_addr), ipstr, sizeof(ipstr));
+            std::cout << "  " << ipstr << std::endl;
+            freeaddrinfo(res);
+            // Binding the port, so the OS registers it for socket use
+            if (bind(socket, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+                perror("bind");
+            }
+            // colocar o socket em modo de escuta, ouvindo a porta 
+            if (listen(socket, 1) == -1) {
+                perror("listen");
+            }
+            maxConnections = DEFAULT_MAX_CONNECTIONS;
+            workerWaitMSec = DEFAULT_WORKER_WAIT_MSEC;
+            if(dir == ""){
+                perror("no directory provided.");
+            }
+            fs::path dir_path  = fs::path(dir);
+            serverRoot = fs::absolute(dir_path);
+            if(!fs::exists(serverRoot)){
+                std::cerr << "Path does not exist."<< std::endl;
+            }
+            if(!fs::is_directory(serverRoot)){
+                std::cerr << "Path is not a directory."<< std::endl;
+            }
+        }
+        else {
+            std::cout << "Not able to resolve address."<< std::endl;
+        }
+
+    }
+
 }
 
 void 
