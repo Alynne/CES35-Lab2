@@ -43,7 +43,7 @@ private:
     /**
      * @brief Completely sends response to connected client.
      */
-    void send(http::response response);
+    void send(http::response& response, fs::path resourcePath);
     fs::path servingRoot;
     int connSocket; ///<! Socket descriptor for connection.
     struct sockaddr_in clientAddr; ///<! Address of client.

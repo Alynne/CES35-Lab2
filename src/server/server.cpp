@@ -39,6 +39,7 @@ http_connection::serve() {
         auto request = recvRequest();
         http::response response(http::status::Ok); // TODO
         http::bytes data;
+        fs::path resourcePath;
         //
         // Check path, respond 400 or 404 if there are any errors.
         //
@@ -48,31 +49,30 @@ http_connection::serve() {
             response.setStatusCode(http::status::BadRequest);
             data = "Empty path";
             response.setContentLength(data.size());
-        } else if (resourcePathStr[0] != '/') {
-            // Respond 400, wrong format
-            response.setStatusCode(http::status::BadRequest);
-            data = "Bad path";
-            response.setContentLength(data.size());
         } else {
-            auto resourcePath = servingRoot / fs::path(resourcePathStr.substr(1));
+            resourcePath = servingRoot / fs::path(resourcePathStr.substr(1));
             if (!fs::exists(resourcePath)) {
                 // Respond 404, no such path
-                // TODO
-            }
-            if (fs::is_directory(resourcePath)) {
+                response.setStatusCode(http::status::NotFound);
+                data = "Resource not found";
+                response.setContentLength(data.size());
+            } else if (fs::is_directory(resourcePath)) {
                 // Look for an "index.html" inside the directory
                 resourcePath = resourcePath / fs::path("index.html");
                 if (!fs::exists(resourcePath)) {
                     // Respond 404, no such index.html
-                    // TODO
+                    response.setStatusCode(http::status::NotFound);
+                    data = "Directory has no index.html";
+                    response.setContentLength(data.size());
                 }
             }
         }
-        response.sendHead();
         if (response.getStatusCode().getCode() != http::status::Ok) {
+            response.sendHead();
             response.sendBodyPart(data);
         } else {
-            // TODO
+            // resource is set, open it, set content length, send header and send body
+            send(reponse, resourcePath);
         }
         
     } catch (std::runtime_error& err) {
@@ -123,8 +123,29 @@ http_connection::recvRequest() {
 }
 
 void 
-http_connection::send(http::response response) {
-
+http_connection::send(http::response& response, fs::path resourcePath) {
+    std::ifstream uploadStream;
+    uploadStream.open(resourcePath.string(), std::ios_base::in | std::ios_base::binary);
+    // Get file size in bytes
+    uploadStream.seekg(0, ios::end);
+    size_t totalBytes = uploadStream.tellg();
+    //
+    // Send Header
+    //
+    response.setContentLength(totalBytes);
+    response.sendHead();
+    //
+    // Send Body
+    //
+    uploadStream.seekg(0);
+    const UPLOAD_BUFFER_SIZE = 4096;
+    http::bytes buffer('\0', UPLOAD_BUFFER_SIZE);
+    while (totalBytes > 0) {
+        size_t bytesRead = uploadStream.readsome(buffer.data(), UPLOAD_BUFFER_SIZE);
+        response.sendBodyPart(buffer);
+        totalBytes -= bytesRead;
+    }
+    uploadStream.close();
 }
 
 void 
