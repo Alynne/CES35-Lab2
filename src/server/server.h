@@ -12,6 +12,7 @@
     #include <filesystem>
     namespace fs = std::filesystem;
 #endif
+#include <atomic>
 #include <string>
 #include "http.h"
 

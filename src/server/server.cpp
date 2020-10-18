@@ -1,7 +1,6 @@
 
 #include <arpa/inet.h>
 #include <cerrno>
-#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <forward_list>
