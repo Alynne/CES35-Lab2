@@ -12,5 +12,6 @@ int main(int argc, char* argv[]) {
     std::uint16_t port = std::stol(argv[2]);
     std::string path = argv[3];
     http_server myServer(host, port, path);
+    myServer.run();
     return 0;
 }

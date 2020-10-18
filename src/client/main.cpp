@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
                 std::string host = std::string(url->getHost());
                 std::uint16_t port = url->port;
                 http_client myClient(host, port);
+                std::cout << "Requesting /" << url->getPath() << " from " << url->getHost() << " " << url->port << std::endl;
                 myClient.get(*url);
                 fs::path resourcePath(url->getPath());
                 std::string outputPath = "./";

@@ -23,7 +23,7 @@ public:
      * @param connSocket The socket descriptor created for the connection.
      */
     http_connection(int connSocket, struct sockaddr_in clientAddr);
-    virtual ~http_connection();
+    virtual ~http_connection() = default;
     /**
      * @brief The handler function. Serves the HTTP client connected.
      */

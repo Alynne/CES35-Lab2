@@ -28,10 +28,6 @@ http_connection::http_connection(int connSocket, struct sockaddr_in clientAddr)
     servingRoot()
 {}
 
-http_connection::~http_connection() {
-    close(connSocket);
-}
-
 void
 http_connection::serve() {
     // Call recv to receive request
@@ -79,11 +75,13 @@ http_connection::serve() {
         std::cerr << err.what() << std::endl;
         std::cerr << "Aborting connection..." << std::endl;
     }
+    close(connSocket);
 }
 
 http::request
 http_connection::recvRequest() {
     auto requestParseResult = http::request::parse(connSocket);
+    std::cout << "Passei!" << std::endl;
     if (!requestParseResult.has_value()) {
         // Some problem occured when receiving the request.
         std::stringstream ss;
@@ -151,6 +149,7 @@ http_connection::send(http::response& response, fs::path resourcePath) {
 void 
 http_server::run() noexcept {
     int openedConnections = 0;
+    int totalThreadsSpawned = 0;
     std::forward_list<std::thread> workers;
     while (true) {
         // Look for finished workers
@@ -170,19 +169,20 @@ http_server::run() noexcept {
             }
         } while (openedConnections >  maxConnections);
         // We're on budget and may accept a new connection
-        int sockfd;
         struct sockaddr_in clientAddr;
         socklen_t clientAddrSize = sizeof(clientAddr);
-        int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
+        int clientSockfd = accept(socket, (struct sockaddr*)&clientAddr, &clientAddrSize);
         if (clientSockfd == -1) {
             handleAcceptError();
             continue;
         }
         // Spawn worker to handle connection
         http_connection connection(clientSockfd, clientAddr);
-        std::thread connWorker(connection, serverRoot);
+        workers.emplace_front(std::thread(connection, serverRoot));
         openedConnections++;
-        workers.emplace_front(std::move(connWorker));
+        totalThreadsSpawned++;
+        std::cout << "Opened connections: " << openedConnections << std::endl;
+        std::cout << "Total threads spawned: " << totalThreadsSpawned << std::endl;
     }
     exit(0);
 }
@@ -205,10 +205,10 @@ http_server::http_server(std::string host, unsigned short port, std::string dir)
     if ((resolve_status = getaddrinfo(host.c_str(), portStr.c_str(), &hints, &res))== 0) {
         if (res != NULL){
             addr = *((struct sockaddr_in*) res->ai_addr);
+            char oi[100];
             //Printing ip address for debugging
             char ipstr[INET_ADDRSTRLEN] = {'\0'};
             inet_ntop(res->ai_family, &(addr.sin_addr), ipstr, sizeof(ipstr));
-            std::cout << "  " << ipstr << std::endl;
             freeaddrinfo(res);
             // Binding the port, so the OS registers it for socket use
             if (bind(socket, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
@@ -237,7 +237,8 @@ http_server::http_server(std::string host, unsigned short port, std::string dir)
         }
 
     }
-
+    std::cout << "Server ready for messages!" << std::endl;
+    std::cout << "Listening at " << port << std::endl;
 }
 
 void 
