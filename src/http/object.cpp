@@ -210,7 +210,10 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
                                    && buffer[nextEnd + 2] == '\r'
                                    && buffer[nextEnd + 3] == '\n';
             if (headersFinished) {
-                auto bodyEnd = std::min((std::uint64_t) buffer.size(), mContentLength);
+                std::cout << off << " " << mContentLength << std::endl;
+                auto bodyEnd = mContentLength == 0
+                               ? (std::uint64_t) off
+                               : std::min((std::uint64_t) off, mContentLength);
                 auto body = buffer.substr(nextEnd + 4, bodyEnd);
                 consumeBody(buffer.size() - body.size());
                 return {std::move(body)};
