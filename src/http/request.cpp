@@ -124,6 +124,7 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
                     return std::nullopt;
                 } else {
                     parsedRequest.emplace(requestLine->first, requestLine->second);
+                    buffer.resize(off);
                     off = lineEnd + 2;
                     break;
                 }

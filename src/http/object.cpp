@@ -27,9 +27,9 @@ size_t object::recvBody(bytes &buffer) {
         return 0;
     }
 
-    auto readSize = std::min(mRemainingLength, (std::uint64_t) buffer.size());
+    auto readSize = std::min(mRemainingLength, (std::uint64_t) buffer.capacity());
     buffer.resize(readSize);
-    auto bytesRead = recvFromSock(mSocket, buffer.data(), readSize);
+    auto bytesRead = recvFromSock(mSocket, (void*) buffer.c_str(), readSize);
     buffer.resize(bytesRead);
 
     switch (errno) {
@@ -134,6 +134,7 @@ size_t object::recvFromSock(int socket, void* buffer, int size) {
     size_t bytesRead;
 
     while (true) {
+        std::cout << "receiving " << size << " bytes" << std::endl;
         bytesRead = recv(socket, buffer, size, 0);
 
         if (bytesRead == -1) {
@@ -150,6 +151,7 @@ size_t object::recvFromSock(int socket, void* buffer, int size) {
                 case EINVAL:
                 case EINTR:
                 case ENOBUFS:
+                    std::cout << "errno: " << errno << std::endl;
                     continue;
                 case ENOTCONN:
                     throw std::logic_error("the socket isn't connected");
@@ -170,6 +172,7 @@ size_t object::recvFromSock(int socket, void* buffer, int size) {
 
 std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
     std::size_t headerStart = off;
+    off = buffer.size();
     while (true) {
         auto nextEnd = buffer.find_first_of('\r', headerStart);
         if (nextEnd == std::string::npos || (nextEnd <= buffer.size() && nextEnd > buffer.size() - 4)) {
@@ -211,11 +214,13 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
                                    && buffer[nextEnd + 3] == '\n';
             if (headersFinished) {
                 std::cout << off << " " << mContentLength << std::endl;
-                auto bodyEnd = mContentLength == 0
-                               ? (std::uint64_t) off
-                               : std::min((std::uint64_t) off, mContentLength);
-                auto body = buffer.substr(nextEnd + 4, bodyEnd);
-                consumeBody(buffer.size() - body.size());
+                auto bodyStart = nextEnd + 4;
+                auto bodyLen = mContentLength == 0
+                               ? (std::uint64_t) off - bodyStart
+                               : std::min((std::uint64_t) off - bodyStart, mContentLength);
+                std::cout << "body slice: " << bodyStart << " - " << bodyLen << std::endl;
+                auto body = buffer.substr(bodyStart, bodyLen);
+                consumeBody(bodyLen);
                 return {std::move(body)};
             }
         }

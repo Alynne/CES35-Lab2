@@ -53,6 +53,7 @@ namespace http {
 
         void setContentLength(std::uint64_t length) {
             mContentLength = length;
+            mRemainingLength = mContentLength;
         }
 
         size_t recvBody(bytes &buffer);
