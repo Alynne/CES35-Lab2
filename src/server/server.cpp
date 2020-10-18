@@ -41,15 +41,15 @@ http_connection::serve() {
             data = "Bad path";
             response.setContentLength(data.size());
         } else {
-            auto resourcePath = servingRoot / std::filesystem::path(resourcePathStr.substr(1));
-            if (!std::filesystem::exists(resourcePath)) {
+            auto resourcePath = servingRoot / std::experimental::filesystem::path(resourcePathStr.substr(1));
+            if (!std::experimental::filesystem::exists(resourcePath)) {
                 // Respond 404, no such path
                 // TODO
             }
-            if (std::filesystem::is_directory(resourcePath)) {
+            if (std::experimental::filesystem::is_directory(resourcePath)) {
                 // Look for an "index.html" inside the directory
-                resourcePath = resourcePath / std::filesystem::path("index.html");
-                if (!std::filesystem::exists(resourcePath)) {
+                resourcePath = resourcePath / std::experimental::filesystem::path("index.html");
+                if (!std::experimental::filesystem::exists(resourcePath)) {
                     // Respond 404, no such index.html
                     // TODO
                 }
