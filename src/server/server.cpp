@@ -71,6 +71,7 @@ http_connection::serve() {
             std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Sent!..." << std::endl;
         } else {
             // resource is set, open it, set content length, send header and send body
+            std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Send resource " << resourcePath << std::endl;
             send(response, resourcePath);
         }
     } catch (std::runtime_error& err) {
@@ -103,9 +104,9 @@ http_connection::recvRequest() {
     }
     http::request recvRequest = requestParseResult.value().first;
     http::bytes body = requestParseResult.value().second;
-    for (auto&item : recvRequest.getHeaders()) {
-        std::cout << "Header \"" << item.first << "\": " << item.second << std::endl;
-    }
+    // for (auto&item : recvRequest.getHeaders()) {
+    //     std::cout << "Header \"" << item.first << "\": " << item.second << std::endl;
+    // }
     // std::cout << "Header \"" << "content-length" << "\": " << recvRequest.getContentLength() << std::endl;
     // std::cout << "leftover body bytes:" << body.size() << std::endl;
     //
