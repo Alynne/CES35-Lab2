@@ -45,7 +45,7 @@ http_client::http_client(std::string host, std::uint16_t port){
         }
 
     }
-
+    recvBufferSize = DEFAULT_RECV_BUFFER_SIZE;
 }
 http_client::~http_client() {
   ::close(socket);
@@ -120,12 +120,12 @@ http_client::saveAt(fs::path path) {
     if (leftovers.size() > 0) {
         downloadStream.write(leftovers.c_str(), leftovers.size());
     }
-    return true;
     // Receive body
     size_t bytesReceived;
-    http::bytes buffer(recvBufferSize, 0);
+    http::bytes buffer;
     bool success = true;
     while (true) {
+        buffer.resize(recvBufferSize);
         try {
             bytesReceived = response.recvBody(buffer);
         } catch (std::runtime_error& err) {
