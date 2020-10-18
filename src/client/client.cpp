@@ -73,10 +73,13 @@ http_client::get(const http::url& url, const std::string& body) {
     GETRequest.setHeader("User-Agent", "CES35Lab2/1.0 SimpleHTTPClient");
     // Send header
     GETRequest.sendHead();
+    std::cout << "Sent GET Head!" << std::endl;
     // Send body
     if (!body.empty()) {
         try {
+            std::cout << "Sending request body part..." << std::endl;
             GETRequest.sendBodyPart(body);
+            std::cout << "Sending request body!" << std::endl;
         } catch (std::runtime_error& err) {
             std::stringstream ss(err.what());
             ss << "\nFailed to send GET request to " << url.getFullUrl();;

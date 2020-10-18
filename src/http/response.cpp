@@ -92,14 +92,15 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
             }
         } else if (received == 0) {
             // No more data to receive, but found no '\r\n'
-            throw std::runtime_error("data improperly formatted");
+            if (off == 0) 
+                throw std::runtime_error("connection finished but did not receive anything.");
+            throw std::runtime_error("connection finished while receiving first response header line.");
         } else {
-            throw std::runtime_error("error when receiving header");
+            throw std::runtime_error("error when receiving first response header line");
         }
     }
-
-    std::cout << buffer << std::endl;
-    std::cout << std::endl<< std::endl<< std::endl;
+    std::cout << buffer;
+    std::cout << "gap" << std::endl<< std::endl<< std::endl;
 
     parsedResponse->initialize(socket);
     auto body = parsedResponse->parseHeaders(buffer, off);

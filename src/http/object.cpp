@@ -132,7 +132,6 @@ void object::setHeader(std::string header, std::string value) noexcept {
 
 size_t object::recvFromSock(int socket, void* buffer, int size) {
     size_t bytesRead;
-
     while (true) {
         std::cout << "receiving " << size << " bytes" << std::endl;
         bytesRead = recv(socket, buffer, size, 0);
@@ -193,11 +192,13 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
                                [](unsigned char c) { return std::tolower(c); });
 
                 if (header == "content-length") {
-                    char* processed;
-                    auto contentLen = std::strtol(buffer.c_str() + headerName + 2, &processed, 10);
-                    if (!contentLen || errno == ERANGE) {
+                    char* processed = NULL;
+                    const char* contentLengthStrBegin = buffer.c_str() + headerName + 2;
+                    auto contentLen = std::strtol(contentLengthStrBegin, &processed, 10);
+                    if ((contentLen == 0 && processed == contentLengthStrBegin) || errno == ERANGE) {
                         return std::nullopt;
                     }
+                    std::cout << "\n<<SETTING HEADER>> \"" << "content-length" << "\" <<TO>> " << contentLen << std::endl;
                     setContentLength(contentLen);
                 } else {
                     auto headerValueStart = headerName + 2;

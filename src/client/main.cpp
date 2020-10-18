@@ -25,6 +25,7 @@ int main(int argc, char* argv[]) {
                 } else {
                     outputPath += resourcePath.filename().string();
                 }
+                std::cout << "Saving at: " << outputPath << std::endl;
                 myClient.saveAt(outputPath);
             }
             else{

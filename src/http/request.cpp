@@ -4,6 +4,7 @@
 
 #include "http/request.h"
 #include <cerrno>
+#include <iostream>
 
 using namespace http;
 
@@ -107,15 +108,16 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
     buffer.reserve(4096);
     std::size_t off = 0;
     std::optional<request> parsedRequest;
-
     // Parse request line.
     while (true) {
-        auto received = recvFromSock(socket, buffer.data() + off, buffer.capacity() - off);
+        auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
         if (received == -1) {
+            throw std::runtime_error("error while receiving request header");
         } else if (received != 0) {
+            std::cout << buffer << std::endl;
             auto lineEnd = buffer.find_first_of('\r');
             if (lineEnd == std::string::npos) {
-                buffer.reserve(buffer.capacity() + 4096);
+                buffer.reserve(buffer.size() + 4096);
                 off += received;
                 continue;
             } else {
@@ -129,8 +131,14 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
                     break;
                 }
             }
+        } else {
+            // No more data to receive but found no "\r\n"
+            if (off == 0) throw std::runtime_error("connection finished but did not receive anything.");
+            throw std::runtime_error("connection finished while receiving first request header line.");
         }
     }
+
+    std::cout << std::endl<< std::endl<< std::endl;
 
     parsedRequest->initialize(socket);
     auto body = parsedRequest->parseHeaders(buffer, off);
