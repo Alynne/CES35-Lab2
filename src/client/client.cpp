@@ -28,14 +28,13 @@ http_client::http_client(std::string host, std::uint16_t port){
     hints.ai_family = AF_INET; // IPv4
     hints.ai_socktype = SOCK_STREAM; // TCP
     int resolve_status = 0;
-    std::string portStr = std::to_string(port);
-    if ((resolve_status = getaddrinfo(host.c_str(), portStr.c_str(), &hints, &res))) {
+    std::string portStr = std::to_string(port == 0 ? 80 : port);
+    if ((resolve_status = getaddrinfo(host.c_str(), portStr.c_str(), &hints, &res)) == 0) {
         if (res != NULL){
             serverAddr = *((struct sockaddr_in*) res->ai_addr);
             //Printing ip address for debugging
             char ipstr[INET_ADDRSTRLEN] = {'\0'};
             inet_ntop(res->ai_family, &(serverAddr.sin_addr), ipstr, sizeof(ipstr));
-            std::cout << "  " << ipstr << std::endl;
             if (connect(socket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
                 perror("connect");
             }
@@ -114,10 +113,14 @@ http_client::saveAt(fs::path path) {
         // TODO: Better error?
     }
     auto [response, leftovers] = responseResult.value();
+    // for (auto& item : response.getHeaders()) {
+    //     std::cout << item.first << ": " << item.second << std::endl;
+    // }
     // Write initial body data, if any
     if (leftovers.size() > 0) {
         downloadStream.write(leftovers.c_str(), leftovers.size());
     }
+    return true;
     // Receive body
     size_t bytesReceived;
     http::bytes buffer(recvBufferSize, 0);

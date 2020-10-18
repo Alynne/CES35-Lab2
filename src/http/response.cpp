@@ -4,6 +4,7 @@
 
 #include "http.h"
 #include <cerrno>
+#include <iostream>
 
 using namespace http;
 
@@ -64,17 +65,18 @@ parseResponseLine(const std::string &buffer) {
 
 std::optional<std::pair<response, bytes>> response::parse(int socket) {
     bytes buffer;
-    buffer.reserve(4096);
+    buffer.resize(4096);
     std::size_t off = 0;
     std::optional<response> parsedResponse;
 
     // Parse request line.
     while (true) {
-        auto received = recvFromSock(socket, buffer.data() + off, buffer.capacity() - off);
+        auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
         if (received != 0 && received != -1) {
+            // std::cout << buffer << std::endl;
             auto lineEnd = buffer.find_first_of('\r');
             if (lineEnd == std::string::npos) {
-                buffer.reserve(buffer.capacity() + 4096);
+                buffer.resize(buffer.size() + 4096);
                 off += received;
                 continue;
             } else {
@@ -87,16 +89,24 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
                     break;
                 }
             }
+        } else if (received == 0) {
+            // No more data to receive, but found no '\r\n'
+            throw std::runtime_error("data improperly formatted");
+        } else {
+            throw std::runtime_error("error when receiving header");
         }
     }
+    // std::cout << std::endl<< std::endl<< std::endl;
 
     // Parse headers.
     std::size_t headerStart = off;
+    int loop = 0;
     while (true) {
+        loop++;
         auto nextEnd = buffer.find_first_of('\r', headerStart);
         if (nextEnd == std::string::npos || (nextEnd <= buffer.size() && nextEnd > buffer.size() - 4)) {
-            buffer.reserve(buffer.capacity() + 1024);
-            auto received = recvFromSock(socket, buffer.data() + off, buffer.capacity() - off);
+            buffer.resize(buffer.size() + 1024);
+            auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
             if (received != 0 && received != -1) {
                 off += received;
             }
@@ -126,8 +136,10 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
                         parsedResponse->setContentLength(contentLen);
                     } else {
                         auto headerValue = buffer.substr(headerName + 2, nextEnd);
+                        // std::cout << "\n<<SETTING HEADER>> \"" << header << "\" <<TO>> " << headerValue << std::endl;
                         parsedResponse->setHeader(std::move(header), std::move(headerValue));
                     }
+                    headerStart = nextEnd+2;
                 }
             }
         }
