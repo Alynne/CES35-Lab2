@@ -72,7 +72,7 @@ http_connection::serve() {
             response.sendBodyPart(data);
         } else {
             // resource is set, open it, set content length, send header and send body
-            send(reponse, resourcePath);
+            send(response, resourcePath);
         }
         
     } catch (std::runtime_error& err) {
@@ -127,7 +127,7 @@ http_connection::send(http::response& response, fs::path resourcePath) {
     std::ifstream uploadStream;
     uploadStream.open(resourcePath.string(), std::ios_base::in | std::ios_base::binary);
     // Get file size in bytes
-    uploadStream.seekg(0, ios::end);
+    uploadStream.seekg(0, std::ios::end);
     size_t totalBytes = uploadStream.tellg();
     //
     // Send Header
@@ -138,8 +138,8 @@ http_connection::send(http::response& response, fs::path resourcePath) {
     // Send Body
     //
     uploadStream.seekg(0);
-    const UPLOAD_BUFFER_SIZE = 4096;
-    http::bytes buffer('\0', UPLOAD_BUFFER_SIZE);
+    const size_t UPLOAD_BUFFER_SIZE = 4096;
+    http::bytes buffer(UPLOAD_BUFFER_SIZE, '\0');
     while (totalBytes > 0) {
         size_t bytesRead = uploadStream.readsome(buffer.data(), UPLOAD_BUFFER_SIZE);
         response.sendBodyPart(buffer);
