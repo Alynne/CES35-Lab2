@@ -38,6 +38,8 @@ http_client::http_client(std::string host, std::uint16_t port){
             freeaddrinfo(res);
             if (connect(socket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
                 perror("connect");
+            } else {
+                std::cout << "Connected to: " << ipstr << ":" << port << std::endl;
             }
             clientState = client_state::CONNECTED;
         }

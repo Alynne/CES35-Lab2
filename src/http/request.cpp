@@ -4,7 +4,9 @@
 
 #include "http/request.h"
 #include <cerrno>
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 using namespace http;
 
@@ -31,7 +33,9 @@ void request::writeStartLine(bytes &buffer) const noexcept {
             buffer += "UNLINK ";
     }
 
-    buffer += getUrl().getFullUrl();
+    buffer += "/";
+    if(!getUrl().getPath().empty()) 
+        buffer += getUrl().getPath();
     buffer += " HTTP/1.0\r\n";
 }
 
@@ -105,12 +109,14 @@ parseRequestLine(const std::string &buffer) {
 
 std::optional<std::pair<request, bytes>> request::parse(int socket) {
     bytes buffer;
-    buffer.reserve(4096);
+    buffer.resize(4096);
     std::size_t off = 0;
     std::optional<request> parsedRequest;
+    int retry = 10;
     // Parse request line.
     while (true) {
         auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
+        std::cout << "received: " << received << std::endl;
         if (received == -1) {
             throw std::runtime_error("error while receiving request header");
         } else if (received != 0) {
@@ -133,6 +139,11 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
             }
         } else {
             // No more data to receive but found no "\r\n"
+            if (retry > 0) {
+                retry--;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            }
             if (off == 0) throw std::runtime_error("connection finished but did not receive anything.");
             throw std::runtime_error("connection finished while receiving first request header line.");
         }

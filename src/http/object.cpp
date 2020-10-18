@@ -48,7 +48,7 @@ size_t object::recvBody(bytes &buffer) {
 
 void object::sendBodyPart(const bytes &buffer) {
     std::size_t bytesSent = 0;
-
+    std::cout << "buffer size: " << buffer.size() << std::endl;
     while (bytesSent != buffer.size()) {
         auto sent = send(mSocket, buffer.data() + bytesSent, buffer.size() - bytesSent,
                          0);
@@ -91,6 +91,7 @@ void object::sendBodyPart(const bytes &buffer) {
         } else {
             bytesSent += sent;
         }
+        std::cout << "sent: " << bytesSent << " bytes" << std::endl; 
     }
 }
 
@@ -102,16 +103,15 @@ void object::sendHead() {
     writeHeaders(buffer);
 
     buffer += "\r\n";
-
+    std::cout << "result buffer:" << buffer;
+    
     sendBodyPart(buffer);
 }
 
 void object::writeHeaders(bytes &buffer) const noexcept {
-    if (mContentLength) {
-        buffer += "content-length: ";
-        buffer += std::to_string(mContentLength);
-        buffer += "\r\n";
-    }
+    buffer += "content-length: ";
+    buffer += std::to_string(mContentLength);
+    buffer += "\r\n";
 
     for (const auto& h: getHeaders()) {
         buffer += h.first;
@@ -158,6 +158,7 @@ size_t object::recvFromSock(int socket, void* buffer, int size) {
                     throw std::runtime_error(
                             "the operation isn't supported in the socket");
                 default:
+                    std::cerr << "oii" << std::endl;
                     break;
                     {}
             }
