@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
                 myClient.get(*url);
                 fs::path resourcePath(url->getPath());
                 std::string outputPath = "./";
-                if (resourcePath.string().empty() || fs::is_directory(resourcePath)) {
+                if (resourcePath.string().empty() || !resourcePath.has_filename()) {
                     outputPath += "index.html";
                 } else {
                     outputPath += resourcePath.filename().string();
