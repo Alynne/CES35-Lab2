@@ -11,6 +11,7 @@
 #include "url.h"
 #include <vector>
 #include <cstddef>
+#include <algorithm>
 
 namespace http {
     using bytes = std::string;

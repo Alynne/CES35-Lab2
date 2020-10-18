@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <exṕerimental/filesystem>
+#include <experimental/filesystem>
 #include <string>
 #include "http.h"
 
@@ -38,7 +38,7 @@ private:
      * @brief Completely sends response to connected client.
      */
     void send(http::response response);
-    std::filesystem::path servingRoot;
+    std::experimental::filesystem::path servingRoot;
     int connSocket; ///<! Socket descriptor for connection.
     struct sockaddr_in clientAddr; ///<! Address of client.
 };
