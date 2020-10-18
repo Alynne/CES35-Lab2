@@ -80,6 +80,7 @@ namespace http {
         }
 
         static size_t recvFromSock(int socket, void* buffer, int size);
+        std::optional<bytes> parseHeaders(bytes &buffer, std::size_t off);
     private:
         int mSocket = -1;
         bool mConnected = true;

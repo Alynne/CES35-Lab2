@@ -73,7 +73,6 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
     while (true) {
         auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
         if (received != 0 && received != -1) {
-            // std::cout << buffer << std::endl;
             auto lineEnd = buffer.find_first_of('\r');
             if (lineEnd == std::string::npos) {
                 buffer.resize(buffer.size() + 4096);
@@ -96,52 +95,15 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
             throw std::runtime_error("error when receiving header");
         }
     }
-    // std::cout << std::endl<< std::endl<< std::endl;
 
-    // Parse headers.
-    std::size_t headerStart = off;
-    int loop = 0;
-    while (true) {
-        loop++;
-        auto nextEnd = buffer.find_first_of('\r', headerStart);
-        if (nextEnd == std::string::npos || (nextEnd <= buffer.size() && nextEnd > buffer.size() - 4)) {
-            buffer.resize(buffer.size() + 1024);
-            auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
-            if (received != 0 && received != -1) {
-                off += received;
-            }
-        } else {
-            auto headersFinished = buffer[nextEnd + 1] == '\n'
-                                   && buffer[nextEnd + 2] == '\r'
-                                   && buffer[nextEnd + 3] == '\n';
-            if (headersFinished) {
-                auto bodyStart = buffer.substr(nextEnd + 4);
-                parsedResponse->consumeBody(buffer.size() - bodyStart.size());
-                return {{parsedResponse.value(), std::move(bodyStart)}};
-            } else {
-                auto headerName = buffer.find_first_of(':', headerStart);
-                if (headerName == std::string::npos) {
-                    return std::nullopt;
-                } else {
-                    auto header = buffer.substr(headerStart, headerName);
-                    std::transform(header.begin(), header.end(), header.begin(),
-                                   [](unsigned char c) { return std::tolower(c); });
+    std::cout << buffer << std::endl;
+    std::cout << std::endl<< std::endl<< std::endl;
 
-                    if (header == "content-length") {
-                        char* processed;
-                        auto contentLen = std::strtol(buffer.c_str() + headerStart + 2, &processed, 10);
-                        if (!contentLen || errno == ERANGE) {
-                            return std::nullopt;
-                        }
-                        parsedResponse->setContentLength(contentLen);
-                    } else {
-                        auto headerValue = buffer.substr(headerName + 2, nextEnd);
-                        // std::cout << "\n<<SETTING HEADER>> \"" << header << "\" <<TO>> " << headerValue << std::endl;
-                        parsedResponse->setHeader(std::move(header), std::move(headerValue));
-                    }
-                    headerStart = nextEnd+2;
-                }
-            }
-        }
+    parsedResponse->initialize(socket);
+    auto body = parsedResponse->parseHeaders(buffer, off);
+    if (body.has_value()) {
+        return {{parsedResponse.value(), body.value()}};
+    } else {
+        return std::nullopt;
     }
 }
