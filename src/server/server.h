@@ -22,7 +22,7 @@ public:
      *  communicate with a given socket.
      * @param connSocket The socket descriptor created for the connection.
      */
-    http_connection(int connSocket, struct sockaddr_in clientAddr);
+    http_connection(int connSocket, struct sockaddr_in clientAddr, const fs::path& servingRoot);
     virtual ~http_connection() = default;
     /**
      * @brief The handler function. Serves the HTTP client connected.
@@ -31,9 +31,9 @@ public:
     /**
      * @brief Call operator, redirect to the serve() function.
      */
-    void operator() (const fs::path& servingRoot) {
-        this->servingRoot = servingRoot;
+    void operator() (std::atomic<int>& numberOfConnections) {
         serve();
+        numberOfConnections--;
     }
 private:
     /**

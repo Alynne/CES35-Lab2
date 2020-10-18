@@ -1,6 +1,7 @@
 
 #include <arpa/inet.h>
 #include <cerrno>
+#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <forward_list>
@@ -22,10 +23,10 @@
 #include <string>
 
 
-http_connection::http_connection(int connSocket, struct sockaddr_in clientAddr) 
+http_connection::http_connection(int connSocket, struct sockaddr_in clientAddr, const fs::path& servingRoot) 
 :   connSocket(connSocket), 
     clientAddr(clientAddr), 
-    servingRoot()
+    servingRoot(servingRoot)
 {}
 
 void
@@ -33,7 +34,7 @@ http_connection::serve() {
     // Call recv to receive request
     try {
         auto request = recvRequest();
-        http::response response(http::status::Ok); // TODO
+        http::response response(http::status::Ok);
         http::bytes data;
         fs::path resourcePath;
         //
@@ -70,10 +71,9 @@ http_connection::serve() {
             // resource is set, open it, set content length, send header and send body
             send(response, resourcePath);
         }
-        
     } catch (std::runtime_error& err) {
-        std::cerr << err.what() << std::endl;
-        std::cerr << "Aborting connection..." << std::endl;
+        std::cerr << "[THREAD " << std::this_thread::get_id() << "]: " << err.what() << std::endl;
+        std::cerr << "[THREAD " << std::this_thread::get_id() << "]: " << "Aborting connection..." << std::endl;
     }
     close(connSocket);
 }
@@ -148,41 +148,33 @@ http_connection::send(http::response& response, fs::path resourcePath) {
 
 void 
 http_server::run() noexcept {
-    int openedConnections = 0;
+    std::atomic<int> openedConnections = 0;
     int totalThreadsSpawned = 0;
-    std::forward_list<std::thread> workers;
     while (true) {
-        // Look for finished workers
-        do {
-            workers.remove_if(
-                [&openedConnections](std::thread& t) {
-                    if (t.joinable()) {
-                        t.join();
-                        openedConnections--;
-                        return true;
-                    }
-                    return false;
-            });
-            if (openedConnections >  maxConnections) {
-                // Couldn't remove any finished worker. Sleep a bit.
-                std::this_thread::sleep_for(std::chrono::milliseconds(workerWaitMSec));
-            }
-        } while (openedConnections >  maxConnections);
+        while (openedConnections >  maxConnections) {
+            // Couldn't remove any finished worker. Sleep a bit.
+            std::this_thread::sleep_for(std::chrono::milliseconds(workerWaitMSec));
+        }
         // We're on budget and may accept a new connection
         struct sockaddr_in clientAddr;
         socklen_t clientAddrSize = sizeof(clientAddr);
+        std::cout << "[MAIN_THREAD]: Waiting for connections... (" << openedConnections << "/" << maxConnections << ")\n";
         int clientSockfd = accept(socket, (struct sockaddr*)&clientAddr, &clientAddrSize);
         if (clientSockfd == -1) {
             handleAcceptError();
             continue;
         }
         // Spawn worker to handle connection
-        http_connection connection(clientSockfd, clientAddr);
-        workers.emplace_front(std::thread(connection, serverRoot));
+        http_connection connection(clientSockfd, clientAddr, serverRoot);
+        char aux_str[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(clientAddr.sin_addr), aux_str, INET_ADDRSTRLEN);
+        std::cout << "[MAIN_THREAD]: Spawn worker for client " << aux_str << ":" << clientAddr.sin_port << std::endl;
+        std::thread worker(connection, std::reference_wrapper(openedConnections)); // Spawn worker in new thread
+        worker.detach(); // Detach since we don't retrieve anything from it.
         openedConnections++;
         totalThreadsSpawned++;
-        std::cout << "Opened connections: " << openedConnections << std::endl;
-        std::cout << "Total threads spawned: " << totalThreadsSpawned << std::endl;
+        std::cout << "[MAIN_THREAD]: Opened connections: " << openedConnections << std::endl;
+        std::cout << "[MAIN_THREAD]: Total threads spawned: " << totalThreadsSpawned << std::endl;
     }
     exit(0);
 }
@@ -205,7 +197,6 @@ http_server::http_server(std::string host, unsigned short port, std::string dir)
     if ((resolve_status = getaddrinfo(host.c_str(), portStr.c_str(), &hints, &res))== 0) {
         if (res != NULL){
             addr = *((struct sockaddr_in*) res->ai_addr);
-            char oi[100];
             //Printing ip address for debugging
             char ipstr[INET_ADDRSTRLEN] = {'\0'};
             inet_ntop(res->ai_family, &(addr.sin_addr), ipstr, sizeof(ipstr));
@@ -213,10 +204,15 @@ http_server::http_server(std::string host, unsigned short port, std::string dir)
             // Binding the port, so the OS registers it for socket use
             if (bind(socket, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
                 perror("bind");
+            } else {
+                std::cout << "Binded server to: " << ipstr << ":" << portStr.c_str() << std::endl;
             }
             // colocar o socket em modo de escuta, ouvindo a porta 
-            if (listen(socket, 1) == -1) {
+            const int MAX_CONN_Q = 2*DEFAULT_MAX_CONNECTIONS;
+            if (listen(socket, MAX_CONN_Q) == -1) {
                 perror("listen");
+            } else {
+                std::cout << "Socket listening! Max queued connection allowed: " << MAX_CONN_Q << std::endl;
             }
             maxConnections = DEFAULT_MAX_CONNECTIONS;
             workerWaitMSec = DEFAULT_WORKER_WAIT_MSEC;
@@ -237,8 +233,7 @@ http_server::http_server(std::string host, unsigned short port, std::string dir)
         }
 
     }
-    std::cout << "Server ready for messages!" << std::endl;
-    std::cout << "Listening at " << port << std::endl;
+    std::cout << "Server ready to accept connections!" << std::endl;
 }
 
 void 
