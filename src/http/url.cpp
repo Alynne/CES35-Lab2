@@ -6,7 +6,12 @@ using namespace http;
 std::optional<url> url::parse(std::string url) {
     auto idx = url.find_first_of(':');
     if (idx > (unsigned long)std::numeric_limits<std::uint8_t>::max()) {
-        return std::nullopt;
+        if (url[0] == '/') {
+            auto pathEnd = url.size();
+            return {{std::move(url), 0, {0,0}, 0, {1, pathEnd}}};
+        } else {
+            return std::nullopt;
+        }
     }
 
     const auto schemeIdx = static_cast<const std::uint8_t>(idx);
@@ -48,5 +53,5 @@ std::optional<url> url::parse(std::string url) {
         pathRange.second = query == std::string::npos ? url.size() : query;
     }
 
-    return { { url, schemeIdx, hostRange, port, pathRange } };
+    return { { std::move(url), schemeIdx, hostRange, port, pathRange } };
 }
