@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 if (NOT ${APPLE})
         # Ubuntu 18 has filesystem support in experimental stage.
-        add_definitions(EXPERIMENTALFS)
+        add_definitions(-DEXPERIMENTALFS)
         link_libraries(stdc++fs)
 endif()
 
