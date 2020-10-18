@@ -29,13 +29,14 @@ http_client::http_client(std::string host, std::uint16_t port){
     hints.ai_socktype = SOCK_STREAM; // TCP
     int resolve_status = 0;
     std::string portStr = std::to_string(port);
-    if ((resolve_status = getaddrinfo(host.c_str(), portStr.c_str(), &hints, &res))) {
+    if ((resolve_status = getaddrinfo(host.c_str(), portStr.c_str(), &hints, &res))==0) {
         if (res != NULL){
             serverAddr = *((struct sockaddr_in*) res->ai_addr);
             //Printing ip address for debugging
             char ipstr[INET_ADDRSTRLEN] = {'\0'};
             inet_ntop(res->ai_family, &(serverAddr.sin_addr), ipstr, sizeof(ipstr));
             std::cout << "  " << ipstr << std::endl;
+            freeaddrinfo(res);
             if (connect(socket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
                 perror("connect");
             }
