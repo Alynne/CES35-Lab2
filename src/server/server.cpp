@@ -201,12 +201,21 @@ http_server::run() noexcept {
 }
 
 http_server::http_server(std::string host, unsigned short port, std::string dir){
+    std::stringstream ss;
+    ss << "Failed to initialize host " << host << " with port " << port << " at directory: " << dir;
+    std::runtime_error constructionException(ss.str());
+    // 
+    // Initialize Server
+    //
+    // Create socket
     socket = ::socket(AF_INET, SOCK_STREAM, 0);
+    // Allow socket reuse after close
     int yes = 1;
     if (setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
         perror("setsockopt");
+        throw constructionException;
     }
-    //Resolving address
+    //Resolve address
     struct addrinfo hints;
     struct addrinfo* res = NULL;
     // hints - modo de configurar o socket para o tipo  de transporte
@@ -225,6 +234,7 @@ http_server::http_server(std::string host, unsigned short port, std::string dir)
             // Binding the port, so the OS registers it for socket use
             if (bind(socket, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
                 perror("bind");
+                throw constructionException;
             } else {
                 std::cout << "Binded server to: " << ipstr << ":" << portStr.c_str() << std::endl;
             }
@@ -232,27 +242,32 @@ http_server::http_server(std::string host, unsigned short port, std::string dir)
             const int MAX_CONN_Q = 2*DEFAULT_MAX_CONNECTIONS;
             if (listen(socket, MAX_CONN_Q) == -1) {
                 perror("listen");
+                throw constructionException;
             } else {
                 std::cout << "Socket listening! Max queued connection allowed: " << MAX_CONN_Q << std::endl;
             }
             maxConnections = DEFAULT_MAX_CONNECTIONS;
             workerWaitMSec = DEFAULT_WORKER_WAIT_MSEC;
             if(dir == ""){
-                perror("no directory provided.");
+                throw constructionException;
             }
             fs::path dir_path  = fs::path(dir);
             serverRoot = fs::absolute(dir_path);
             if(!fs::exists(serverRoot)){
-                std::cerr << "Path does not exist."<< std::endl;
+                std::cerr << "ERROR: Path does not exist."<< std::endl;
+                throw constructionException;
             }
             if(!fs::is_directory(serverRoot)){
-                std::cerr << "Path is not a directory."<< std::endl;
+                std::cerr << "ERROR: Path is not a directory."<< std::endl;
+                throw constructionException;
             }
+        } else {
+            std::cout << "ERROR: Invalid resolved host." << std::endl;
+            throw constructionException;
         }
-        else {
-            std::cout << "Not able to resolve address."<< std::endl;
-        }
-
+    } else {
+        std::cout << "ERROR: Could not resolve host." << std::endl;
+        throw constructionException;
     }
     std::cout << "Server ready to accept connections!" << std::endl;
 }

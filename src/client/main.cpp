@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
                 http_client myClient(host, port);
                 std::cout << "Requesting /" << url->getPath() << " from " << url->getHost() << " " << url->port << std::endl;
                 myClient.get(*url);
+                std::cout << "Sent GET Request!" << std::endl;
                 fs::path resourcePath(url->getPath());
                 std::string outputPath = "./";
                 if (resourcePath.string().empty() || !resourcePath.has_filename()) {
@@ -25,7 +26,7 @@ int main(int argc, char* argv[]) {
                 } else {
                     outputPath += resourcePath.filename().string();
                 }
-                std::cout << "Saving at: " << outputPath << std::endl;
+                std::cout << "Saving response body at: " << outputPath << std::endl;
                 myClient.saveAt(outputPath);
             }
             else{
