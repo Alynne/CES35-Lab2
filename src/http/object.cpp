@@ -173,6 +173,8 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
     while (true) {
         auto nextEnd = buffer.find_first_of('\r', headerStart);
         if (nextEnd == std::string::npos || (nextEnd <= buffer.size() && nextEnd > buffer.size() - 4)) {
+            // not yet received end of line, or the end of line is in the end of the buffer.
+            // in either cases, request more bytes to check for the end of line/headers.
             buffer.resize(buffer.size() + 1024);
             auto received = recvFromSock(mSocket, buffer.data() + off, buffer.size() - off);
             if (received != 0 && received != -1) {
@@ -208,9 +210,10 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
                                    && buffer[nextEnd + 2] == '\r'
                                    && buffer[nextEnd + 3] == '\n';
             if (headersFinished) {
-                auto bodyStart = buffer.substr(nextEnd + 4);
-                consumeBody(buffer.size() - bodyStart.size());
-                return {std::move(bodyStart)};
+                auto bodyEnd = std::min((std::uint64_t) buffer.size(), mContentLength);
+                auto body = buffer.substr(nextEnd + 4, bodyEnd);
+                consumeBody(buffer.size() - body.size());
+                return {std::move(body)};
             }
         }
     }
