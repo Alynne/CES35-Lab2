@@ -99,9 +99,6 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
             throw std::runtime_error("error when receiving first response header line");
         }
     }
-    std::cout << buffer;
-    std::cout << "gap" << std::endl<< std::endl<< std::endl;
-
     parsedResponse->initialize(socket);
     auto body = parsedResponse->parseHeaders(buffer, off);
     if (body.has_value()) {

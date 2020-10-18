@@ -113,12 +113,12 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
     // Parse request line.
     while (true) {
         auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
-        std::cout << "bytes received: " << received << std::endl;
+        //std::cout << "bytes received: " << received << std::endl;
         if (received == -1) {
             throw std::runtime_error("error while receiving request header");
         } else if (received != 0) {
             off += received;
-            std::cout << "content received: " << buffer << "END";
+            //std::cout << "content received: " << buffer << "END";
             auto lineEnd = buffer.find_first_of('\r');
             if (lineEnd == std::string::npos) {
                 buffer.resize(buffer.size() + 4096);
@@ -140,9 +140,6 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
             throw std::runtime_error("connection finished while receiving first request header line.");
         }
     }
-
-    std::cout << "gap" << std::endl<< std::endl<< std::endl;
-
     parsedRequest->initialize(socket);
     auto body = parsedRequest->parseHeaders(buffer, off);
     if (body.has_value()) {

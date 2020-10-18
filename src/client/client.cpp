@@ -125,7 +125,6 @@ http_client::saveAt(fs::path path) {
     // Write initial body data, if any
     if (leftovers.size() > 0) {
         downloadStream.write(leftovers.c_str(), leftovers.size());
-        std::cout << "\nWrite: " << leftovers.c_str();
     }
     // Receive body
     size_t totalBytesWritten = leftovers.size();
@@ -146,7 +145,6 @@ http_client::saveAt(fs::path path) {
             break;
         }
         if (bytesReceived == 0) break;
-        std::cout << "\nWrite: " << buffer;
         downloadStream.write(buffer.c_str(), bytesReceived);
         totalBytesWritten += bytesReceived;
     }

@@ -48,7 +48,7 @@ size_t object::recvBody(bytes &buffer) {
 
 void object::sendBodyPart(const bytes &buffer) {
     std::size_t bytesSent = 0;
-    std::cout << "buffer size: " << buffer.size() << std::endl;
+    //std::cout << "buffer size: " << buffer.size() << std::endl;
     while (bytesSent != buffer.size()) {
         auto sent = send(mSocket, buffer.data() + bytesSent, buffer.size() - bytesSent,
                          0);
@@ -91,7 +91,7 @@ void object::sendBodyPart(const bytes &buffer) {
         } else {
             bytesSent += sent;
         }
-        std::cout << "sent: " << bytesSent << " bytes" << std::endl; 
+        //std::cout << "sent: " << bytesSent << " bytes" << std::endl; 
     }
 }
 
@@ -103,7 +103,6 @@ void object::sendHead() {
     writeHeaders(buffer);
 
     buffer += "\r\n";
-    std::cout << "result buffer:" << buffer;
     
     sendBodyPart(buffer);
 }
@@ -133,7 +132,6 @@ void object::setHeader(std::string header, std::string value) noexcept {
 size_t object::recvFromSock(int socket, void* buffer, int size) {
     size_t bytesRead;
     while (true) {
-        std::cout << "receiving " << size << " bytes" << std::endl;
         bytesRead = recv(socket, buffer, size, 0);
 
         if (bytesRead == -1) {
@@ -150,7 +148,6 @@ size_t object::recvFromSock(int socket, void* buffer, int size) {
                 case EINVAL:
                 case EINTR:
                 case ENOBUFS:
-                    std::cout << "errno: " << errno << std::endl;
                     continue;
                 case ENOTCONN:
                     throw std::logic_error("the socket isn't connected");
@@ -173,8 +170,6 @@ size_t object::recvFromSock(int socket, void* buffer, int size) {
 std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
     std::size_t headerStart = off;
     off = buffer.size();
-    std::cout << "Initial buffer:\n";
-    std::cout << buffer;
     while (true) {
         auto nextEnd = buffer.find_first_of('\r', headerStart);
         if (nextEnd == std::string::npos || (nextEnd <= buffer.size() && nextEnd > buffer.size() - 4)) {
@@ -199,15 +194,14 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
                     const char* contentLengthStrBegin = buffer.c_str() + headerName + 2;
                     auto contentLen = std::strtol(contentLengthStrBegin, &processed, 10);
                     if ((contentLen == 0 && processed == contentLengthStrBegin) || errno == ERANGE) {
-                        std::cout << "AQUI\n"<<std::endl;
                         return std::nullopt;
                     }
-                    std::cout << "\n<<SETTING HEADER>> \"" << "content-length" << "\" <<TO>> " << contentLen << std::endl;
+                    //std::cout << "\n<<SETTING HEADER>> \"" << "content-length" << "\" <<TO>> " << contentLen << std::endl;
                     setContentLength(contentLen);
                 } else {
                     auto headerValueStart = headerName + 2;
                     auto headerValue = buffer.substr(headerValueStart, nextEnd - headerValueStart);
-                    std::cout << "\n<<SETTING HEADER>> \"" << header << "\" <<TO>> " << headerValue << std::endl;
+                    //std::cout << "\n<<SETTING HEADER>> \"" << header << "\" <<TO>> " << headerValue << std::endl;
                     setHeader(std::move(header), std::move(headerValue));
                 }
 
@@ -218,12 +212,11 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
                                    && buffer[nextEnd + 2] == '\r'
                                    && buffer[nextEnd + 3] == '\n';
             if (headersFinished) {
-                std::cout << off << " " << mContentLength << std::endl;
                 auto bodyStart = nextEnd + 4;
                 auto bodyLen = mContentLength == 0
                                ? (std::uint64_t) off - bodyStart
                                : std::min((std::uint64_t) off - bodyStart, mContentLength);
-                std::cout << "body slice: " << bodyStart << " - " << bodyLen << std::endl;
+                //std::cout << "body slice: " << bodyStart << " - " << bodyLen << std::endl;
                 auto body = buffer.substr(bodyStart, bodyLen);
                 consumeBody(bodyLen);
                 return {std::move(body)};

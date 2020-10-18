@@ -94,8 +94,8 @@ http_connection::recvRequest() {
     for (auto&item : recvRequest.getHeaders()) {
         std::cout << "Header \"" << item.first << "\": " << item.second << std::endl;
     }
-    std::cout << "Header \"" << "content-length" << "\": " << recvRequest.getContentLength() << std::endl;
-    std::cout << "leftover body bytes:" << body.size() << std::endl;
+    // std::cout << "Header \"" << "content-length" << "\": " << recvRequest.getContentLength() << std::endl;
+    // std::cout << "leftover body bytes:" << body.size() << std::endl;
     //
     // Call recv to receive remaining body.
     //
@@ -105,7 +105,6 @@ http_connection::recvRequest() {
     while (true) {
         size_t bytesReceived = 0;
         try {
-            std::cout << "recv request body" << std::endl;
             bytesReceived = recvRequest.recvBody(remainingBody);
         } catch (std::logic_error& err) {
             std::stringstream ss(err.what());
@@ -149,7 +148,6 @@ http_connection::send(http::response& response, fs::path resourcePath) {
         buffer.resize(UPLOAD_BUFFER_SIZE);
         uploadStream.read(buffer.data(), UPLOAD_BUFFER_SIZE);
         size_t bytesRead = uploadStream.gcount();
-        std::cout << "Read " << bytesRead << " bytes" << std::endl;
         buffer.resize(bytesRead);
         response.sendBodyPart(buffer);
         totalBytes -= bytesRead;
