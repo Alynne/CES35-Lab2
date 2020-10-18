@@ -172,7 +172,6 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
     std::size_t headerStart = off;
     while (true) {
         auto nextEnd = buffer.find_first_of('\r', headerStart);
-        std::cout << nextEnd << std::endl;
         if (nextEnd == std::string::npos || (nextEnd <= buffer.size() && nextEnd > buffer.size() - 4)) {
             buffer.resize(buffer.size() + 1024);
             auto received = recvFromSock(mSocket, buffer.data() + off, buffer.size() - off);
@@ -180,6 +179,31 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
                 off += received;
             }
         } else {
+            auto headerName = buffer.find_first_of(':', headerStart);
+            if (headerName == std::string::npos) {
+                return std::nullopt;
+            } else {
+                auto header = buffer.substr(headerStart, headerName - headerStart);
+                std::transform(header.begin(), header.end(), header.begin(),
+                               [](unsigned char c) { return std::tolower(c); });
+
+                if (header == "content-length") {
+                    char* processed;
+                    auto contentLen = std::strtol(buffer.c_str() + headerName + 2, &processed, 10);
+                    if (!contentLen || errno == ERANGE) {
+                        return std::nullopt;
+                    }
+                    setContentLength(contentLen);
+                } else {
+                    auto headerValueStart = headerName + 2;
+                    auto headerValue = buffer.substr(headerValueStart, nextEnd - headerValueStart);
+                    std::cout << "\n<<SETTING HEADER>> \"" << header << "\" <<TO>> " << headerValue << std::endl;
+                    setHeader(std::move(header), std::move(headerValue));
+                }
+
+                headerStart = nextEnd + 2;
+            }
+
             auto headersFinished = buffer[nextEnd + 1] == '\n'
                                    && buffer[nextEnd + 2] == '\r'
                                    && buffer[nextEnd + 3] == '\n';
@@ -187,31 +211,6 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
                 auto bodyStart = buffer.substr(nextEnd + 4);
                 consumeBody(buffer.size() - bodyStart.size());
                 return {std::move(bodyStart)};
-            } else {
-                auto headerName = buffer.find_first_of(':', headerStart);
-                if (headerName == std::string::npos) {
-                    return std::nullopt;
-                } else {
-                    auto header = buffer.substr(headerStart, headerName - headerStart);
-                    std::transform(header.begin(), header.end(), header.begin(),
-                                   [](unsigned char c) { return std::tolower(c); });
-
-                    if (header == "content-length") {
-                        char* processed;
-                        auto contentLen = std::strtol(buffer.c_str() + headerStart + 2, &processed, 10);
-                        if (!contentLen || errno == ERANGE) {
-                            return std::nullopt;
-                        }
-                        setContentLength(contentLen);
-                    } else {
-                        auto headerValueStart = headerName + 2;
-                        auto headerValue = buffer.substr(headerValueStart, nextEnd - headerValueStart);
-                        std::cout << "\n<<SETTING HEADER>> \"" << header << "\" <<TO>> " << headerValue << std::endl;
-                        setHeader(std::move(header), std::move(headerValue));
-                    }
-
-                    headerStart = nextEnd + 2;
-                }
             }
         }
     }
