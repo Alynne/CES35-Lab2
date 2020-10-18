@@ -32,11 +32,11 @@ http_connection::http_connection(int connSocket, struct sockaddr_in clientAddr, 
 void
 http_connection::serve() {
     // Call recv to receive request
+    http::response response(http::status::Ok);
+    response.initialize(connSocket);
+    http::bytes data;
     try {
         auto request = recvRequest();
-        http::response response(http::status::Ok);
-        response.initialize(connSocket);
-        http::bytes data;
         fs::path resourcePath;
         //
         // Check path, respond 400 or 404 if there are any errors.
@@ -47,16 +47,19 @@ http_connection::serve() {
         std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Requested resource location: " << resourcePath.string() << std::endl;
         if (!fs::exists(resourcePath)) {
             // Respond 404, no such path
+            std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Resource not found! Reply 404" << std::endl;
             response.setStatusCode(http::status::NotFound);
-            data = "Resource not found";
+            data = "ERROR 404: Not found";
             response.setContentLength(data.size());
         } else if (fs::is_directory(resourcePath)) {
             // Look for an "index.html" inside the directory
             resourcePath = resourcePath / fs::path("index.html");
+            std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Looking for " << resourcePath.string() << std::endl;
             if (!fs::exists(resourcePath)) {
                 // Respond 404, no such index.html
+                std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Resource not found! Reply 404" << std::endl;
                 response.setStatusCode(http::status::NotFound);
-                data = "Directory has no index.html";
+                data = "ERROR 404: Path has no index.html";
                 response.setContentLength(data.size());
             }
         }
@@ -73,9 +76,19 @@ http_connection::serve() {
         }
     } catch (std::runtime_error& err) {
         std::cerr << "[THREAD " << std::this_thread::get_id() << "]: " << err.what() << std::endl;
-        std::cerr << "[THREAD " << std::this_thread::get_id() << "]: " << "Aborting connection..." << std::endl;
+        std::cerr << "[THREAD " << std::this_thread::get_id() << "]: " << "Send response 400." << std::endl;
+        response.setStatusCode(http::status::BadRequest);
+        data = "ERROR 400: Bad Request";
+        response.setContentLength(data.size());
+        try {
+            response.sendHead();
+            response.sendBodyPart(data);
+        } catch(std::runtime_error& err) {
+            std::cerr << "[THREAD " << std::this_thread::get_id() << "]: " << "Fatal error when responding HTTP 400" << std::endl;
+            std::cerr << "[THREAD " << std::this_thread::get_id() << "]: " << "Aborting connection..." << std::endl;
+        }
     }
-    std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Finish worker." << std::endl;
+    std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Finishing worker..." << std::endl;
     close(connSocket);
 }
 
