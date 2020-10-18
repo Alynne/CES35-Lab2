@@ -5,7 +5,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <experimental/filesystem>
+#ifdef EXPERIMENTALFS
+    #include <experimental/filesystem>
+    namespace fs = std::experimental::filesystem;
+#else
+    #include <filesystem>
+    namespace fs = std::filesystem;
+#endif
 #include <string>
 #include "http.h"
 
@@ -25,7 +31,7 @@ public:
     /**
      * @brief Call operator, redirect to the serve() function.
      */
-    void operator() (const std::experimental::filesystem::path& servingRoot) {
+    void operator() (const fs::path& servingRoot) {
         this->servingRoot = servingRoot;
         serve();
     }
@@ -38,7 +44,7 @@ private:
      * @brief Completely sends response to connected client.
      */
     void send(http::response response);
-    std::experimental::filesystem::path servingRoot;
+    fs::path servingRoot;
     int connSocket; ///<! Socket descriptor for connection.
     struct sockaddr_in clientAddr; ///<! Address of client.
 };
@@ -60,7 +66,7 @@ private:
     int socket; ///<! Socket descriptor
     int maxConnections; ///<! Max number of concurrent connections.
     int workerWaitMSec; ///<! Wait time for a worker to finish in msec.
-    std::experimental::filesystem::path serverRoot;
+    fs::path serverRoot;
 };
 
 #endif

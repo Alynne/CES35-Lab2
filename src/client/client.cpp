@@ -91,7 +91,7 @@ http_client::get(const http::url& url, const std::string& body) {
 }
 
 bool 
-http_client::saveAt(std::experimental::filesystem::path path) {
+http_client::saveAt(fs::path path) {
     if (path.empty()) {
         throw std::runtime_error("path is empty");
     }
@@ -100,7 +100,7 @@ http_client::saveAt(std::experimental::filesystem::path path) {
         ss << "path " << path.string() << " does not correspond to a file.";
         throw std::runtime_error(ss.str());
     }
-    if (!std::experimental::filesystem::exists(path.parent_path())) {
+    if (!fs::exists(path.parent_path())) {
         std::stringstream ss;
         ss << "path " << path.parent_path().string() << " does not exist.";
         throw std::runtime_error(ss.str());

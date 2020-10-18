@@ -3,7 +3,13 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <experimental/filesystem>
+#ifdef EXPERIMENTALFS
+    #include <experimental/filesystem>
+    namespace fs = std::experimental::filesystem;
+#else
+    #include <filesystem>
+    namespace fs = std::filesystem;
+#endif
 #include "http.h"
 #include <optional>
 
@@ -45,7 +51,7 @@ public:
      * @param path Path to the file to store the retrieved data.
      * @return True if the response is successfully retrieved and stored under path.
      */
-    bool saveAt(std::experimental::filesystem::path path);
+    bool saveAt(fs::path path);
     /**
      * @brief Get http client conenction state.
      * @return The state of the client's HTTP connection.
