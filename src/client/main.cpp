@@ -17,7 +17,14 @@ int main(int argc, char* argv[]) {
                 std::uint16_t port = url->port;
                 http_client myClient(host, port);
                 myClient.get(*url);
-                myClient.saveAt("./aqui");
+                fs::path resourcePath(url->getPath());
+                std::string outputPath = "./";
+                if (resourcePath.string().empty() || fs::is_directory(resourcePath)) {
+                    outputPath += "index.html";
+                } else {
+                    outputPath += resourcePath.filename().string();
+                }
+                myClient.saveAt(outputPath);
             }
             else{
                 std::cerr<< "Error: Not http."<< std::endl;
