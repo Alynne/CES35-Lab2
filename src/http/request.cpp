@@ -33,9 +33,7 @@ void request::writeStartLine(bytes &buffer) const noexcept {
             buffer += "UNLINK ";
     }
 
-    buffer += "/";
-    if(!getUrl().getPath().empty()) 
-        buffer += getUrl().getPath();
+    buffer += getUrl().getFullUrl();
     buffer += " HTTP/1.0\r\n";
 }
 
@@ -99,7 +97,7 @@ parseRequestLine(const std::string &buffer) {
         return std::nullopt;
     }
 
-    auto url = url::parse(buffer.substr(advance, urlEnd));
+    auto url = url::parse(buffer.substr(advance, urlEnd-advance));
     if (!url.has_value()) {
         return std::nullopt;
     }
@@ -112,19 +110,18 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
     buffer.resize(4096);
     std::size_t off = 0;
     std::optional<request> parsedRequest;
-    int retry = 10;
     // Parse request line.
     while (true) {
         auto received = recvFromSock(socket, buffer.data() + off, buffer.size() - off);
-        std::cout << "received: " << received << std::endl;
+        std::cout << "bytes received: " << received << std::endl;
         if (received == -1) {
             throw std::runtime_error("error while receiving request header");
         } else if (received != 0) {
-            std::cout << buffer << std::endl;
+            off += received;
+            std::cout << "content received: " << buffer << "END";
             auto lineEnd = buffer.find_first_of('\r');
             if (lineEnd == std::string::npos) {
-                buffer.reserve(buffer.size() + 4096);
-                off += received;
+                buffer.resize(buffer.size() + 4096);
                 continue;
             } else {
                 auto requestLine = parseRequestLine(buffer);
@@ -139,17 +136,12 @@ std::optional<std::pair<request, bytes>> request::parse(int socket) {
             }
         } else {
             // No more data to receive but found no "\r\n"
-            if (retry > 0) {
-                retry--;
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                continue;
-            }
             if (off == 0) throw std::runtime_error("connection finished but did not receive anything.");
             throw std::runtime_error("connection finished while receiving first request header line.");
         }
     }
 
-    std::cout << std::endl<< std::endl<< std::endl;
+    std::cout << "gap" << std::endl<< std::endl<< std::endl;
 
     parsedRequest->initialize(socket);
     auto body = parsedRequest->parseHeaders(buffer, off);

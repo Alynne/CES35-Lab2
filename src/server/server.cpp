@@ -35,38 +35,38 @@ http_connection::serve() {
     try {
         auto request = recvRequest();
         http::response response(http::status::Ok);
+        response.initialize(connSocket);
         http::bytes data;
         fs::path resourcePath;
         //
         // Check path, respond 400 or 404 if there are any errors.
         //
         auto resourcePathStr = request.getUrl().getPath();
-        if (resourcePathStr.empty()) {
-            // Respond 400, no path
-            response.setStatusCode(http::status::BadRequest);
-            data = "Empty path";
+        std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Client requests resource: /" << resourcePathStr << std::endl;
+        resourcePath = servingRoot / fs::path(resourcePathStr);
+        std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Requested resource location: " << resourcePath.string() << std::endl;
+        if (!fs::exists(resourcePath)) {
+            // Respond 404, no such path
+            response.setStatusCode(http::status::NotFound);
+            data = "Resource not found";
             response.setContentLength(data.size());
-        } else {
-            resourcePath = servingRoot / fs::path(resourcePathStr.substr(1));
+        } else if (fs::is_directory(resourcePath)) {
+            // Look for an "index.html" inside the directory
+            resourcePath = resourcePath / fs::path("index.html");
             if (!fs::exists(resourcePath)) {
-                // Respond 404, no such path
+                // Respond 404, no such index.html
                 response.setStatusCode(http::status::NotFound);
-                data = "Resource not found";
+                data = "Directory has no index.html";
                 response.setContentLength(data.size());
-            } else if (fs::is_directory(resourcePath)) {
-                // Look for an "index.html" inside the directory
-                resourcePath = resourcePath / fs::path("index.html");
-                if (!fs::exists(resourcePath)) {
-                    // Respond 404, no such index.html
-                    response.setStatusCode(http::status::NotFound);
-                    data = "Directory has no index.html";
-                    response.setContentLength(data.size());
-                }
             }
         }
         if (response.getStatusCode().getCode() != http::status::Ok) {
+            std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Sending header..." << std::endl;
             response.sendHead();
+            std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Sent!" << std::endl;
+            std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Sending body..." << std::endl;
             response.sendBodyPart(data);
+            std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Sent!..." << std::endl;
         } else {
             // resource is set, open it, set content length, send header and send body
             send(response, resourcePath);
@@ -75,13 +75,13 @@ http_connection::serve() {
         std::cerr << "[THREAD " << std::this_thread::get_id() << "]: " << err.what() << std::endl;
         std::cerr << "[THREAD " << std::this_thread::get_id() << "]: " << "Aborting connection..." << std::endl;
     }
+    std::cout << "[THREAD " << std::this_thread::get_id() << "]: " << "Finish worker." << std::endl;
     close(connSocket);
 }
 
 http::request
 http_connection::recvRequest() {
     auto requestParseResult = http::request::parse(connSocket);
-    std::cout << "Passei!" << std::endl;
     if (!requestParseResult.has_value()) {
         // Some problem occured when receiving the request.
         std::stringstream ss;
@@ -91,6 +91,11 @@ http_connection::recvRequest() {
     }
     http::request recvRequest = requestParseResult.value().first;
     http::bytes body = requestParseResult.value().second;
+    for (auto&item : recvRequest.getHeaders()) {
+        std::cout << "Header \"" << item.first << "\": " << item.second << std::endl;
+    }
+    std::cout << "Header \"" << "content-length" << "\": " << recvRequest.getContentLength() << std::endl;
+    std::cout << "leftover body bytes:" << body.size() << std::endl;
     //
     // Call recv to receive remaining body.
     //
@@ -98,8 +103,9 @@ http_connection::recvRequest() {
     http::bytes remainingBody(BODY_PART_SIZE, '\0');
     size_t totalBytesReceived = 0;
     while (true) {
-        size_t bytesReceived;
+        size_t bytesReceived = 0;
         try {
+            std::cout << "recv request body" << std::endl;
             bytesReceived = recvRequest.recvBody(remainingBody);
         } catch (std::logic_error& err) {
             std::stringstream ss(err.what());
@@ -135,11 +141,16 @@ http_connection::send(http::response& response, fs::path resourcePath) {
     //
     // Send Body
     //
-    uploadStream.seekg(0);
+    uploadStream.close();
+    uploadStream.open(resourcePath.string(), std::ios_base::in | std::ios_base::binary);
     const size_t UPLOAD_BUFFER_SIZE = 4096;
-    http::bytes buffer(UPLOAD_BUFFER_SIZE, '\0');
-    while (totalBytes > 0) {
-        size_t bytesRead = uploadStream.readsome(buffer.data(), UPLOAD_BUFFER_SIZE);
+    http::bytes buffer;
+    while (!uploadStream.eof() && !uploadStream.fail() && !uploadStream.bad()) {
+        buffer.resize(UPLOAD_BUFFER_SIZE);
+        uploadStream.read(buffer.data(), UPLOAD_BUFFER_SIZE);
+        size_t bytesRead = uploadStream.gcount();
+        std::cout << "Read " << bytesRead << " bytes" << std::endl;
+        buffer.resize(bytesRead);
         response.sendBodyPart(buffer);
         totalBytes -= bytesRead;
     }

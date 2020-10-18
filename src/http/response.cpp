@@ -77,7 +77,7 @@ std::optional<std::pair<response, bytes>> response::parse(int socket) {
 
             auto lineEnd = buffer.find_first_of('\r');
             if (lineEnd == std::string::npos) {
-                buffer.resize(buffer.size() + received);
+                buffer.resize(buffer.size() + 4096);
                 continue;
             } else {
                 auto responseLine = parseResponseLine(buffer);

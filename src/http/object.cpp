@@ -27,7 +27,7 @@ size_t object::recvBody(bytes &buffer) {
         return 0;
     }
 
-    auto readSize = std::min(mRemainingLength, (std::uint64_t) buffer.capacity());
+    auto readSize = std::min(mRemainingLength, (std::uint64_t) buffer.size());
     buffer.resize(readSize);
     auto bytesRead = recvFromSock(mSocket, (void*) buffer.c_str(), readSize);
     buffer.resize(bytesRead);
@@ -173,6 +173,8 @@ size_t object::recvFromSock(int socket, void* buffer, int size) {
 std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
     std::size_t headerStart = off;
     off = buffer.size();
+    std::cout << "Initial buffer:\n";
+    std::cout << buffer;
     while (true) {
         auto nextEnd = buffer.find_first_of('\r', headerStart);
         if (nextEnd == std::string::npos || (nextEnd <= buffer.size() && nextEnd > buffer.size() - 4)) {
@@ -197,6 +199,7 @@ std::optional<bytes> object::parseHeaders(bytes &buffer, std::size_t off) {
                     const char* contentLengthStrBegin = buffer.c_str() + headerName + 2;
                     auto contentLen = std::strtol(contentLengthStrBegin, &processed, 10);
                     if ((contentLen == 0 && processed == contentLengthStrBegin) || errno == ERANGE) {
+                        std::cout << "AQUI\n"<<std::endl;
                         return std::nullopt;
                     }
                     std::cout << "\n<<SETTING HEADER>> \"" << "content-length" << "\" <<TO>> " << contentLen << std::endl;
